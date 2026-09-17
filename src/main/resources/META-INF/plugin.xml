@@ -3,7 +3,7 @@
     <name>Top Status Bar</name>
     <vendor>xixka</vendor>
     <description><![CDATA[A compact, New UI-style status bar rendered as a single custom toolbar component.<br/>
-    Add the "Top Status Bar" action group to the Main Toolbar via Settings &#8594; Appearance &amp; Behavior &#8594; Menus and Toolbars
+    Add the "Top Status Bar" action to the Main Toolbar via Settings &#8594; Appearance &amp; Behavior &#8594; Menus and Toolbars
     to show editor, project, VCS and runtime status next to the search icon.]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -19,15 +19,13 @@
     </extensions>
 
     <actions>
-        <group id="TopStatusBar"
-               class="com.xixka.topstatusbar.TopStatusBarGroup"
-               popup="false"
-               text="Top Status Bar"
-               description="Compact status bar for the Main Toolbar (New UI)">
-            <action id="TopStatusBar.Widget"
-                    class="com.xixka.topstatusbar.TopStatusBarAction"
-                    text="Top Status Bar Widget"
-                    description="The status bar component itself (usually added via the Top Status Bar group)"/>
-        </group>
+        <!-- Single root-level entry: the action registers directly at the action
+             system root, so "Top Status Bar" appears exactly once in the "Add
+             Action" tree of the native toolbar customization dialog and can be
+             placed into the Main Toolbar without any custom UI patching. -->
+        <action id="TopStatusBar.Widget"
+                class="com.xixka.topstatusbar.TopStatusBarAction"
+                text="Top Status Bar"
+                description="Compact status bar for the Main Toolbar (New UI)"/>
     </actions>
 </idea-plugin>

@@ -7,7 +7,7 @@
 ## 设计原则
 
 - 不创建第二行 Toolbar，不修改 IDEA 内部 UI，不使用反射
-- 整个状态栏是一个可添加到 Main Toolbar 的自定义 ActionGroup（`Top Status Bar`），内部横向渲染状态项，而不是一堆普通 Toolbar 按钮
+- 整个状态栏是一个可添加到 Main Toolbar 的自定义动作（`Top Status Bar`，CustomComponentAction），内部横向渲染状态项，而不是一堆普通 Toolbar 按钮
 - 只使用 IntelliJ 官方 API（Action System、Message Bus topics、`CustomComponentAction`）
 - UI 遵循 JetBrains New UI 惯例：紧凑、Icon + Text、圆角 Hover、Light/Dark 自适应、状态异常时才着色、窗口宽度不足自动隐藏低优先级项、不增加工具栏高度
 

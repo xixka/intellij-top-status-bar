@@ -13,8 +13,8 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 
 ## 目录导览
 
-- `src/main/resources/META-INF/plugin.xml` — 插件声明：ActionGroup 注册、projectService、设置页、通知组
-- `src/main/java/com/xixka/topstatusbar/` — 三个入口类：Group（根级动作分组）、Action（CustomComponentAction）、Panel（工具栏内渲染与自适应隐藏）
+- `src/main/resources/META-INF/plugin.xml` — 插件声明：根级 Action 注册、projectService、设置页、通知组
+- `src/main/java/com/xixka/topstatusbar/` — 两个入口类：Action（根级 CustomComponentAction，直接注册于 plugin.xml）、Panel（工具栏内渲染与自适应隐藏）
 - `src/main/java/com/xixka/topstatusbar/model/` — StatusItem 架构与状态项 id 注册表
 - `src/main/java/com/xixka/topstatusbar/items/` — 17 个状态项实现与 CurrentFileItem 基类
 - `src/main/java/com/xixka/topstatusbar/ui/StatusCell.java` — New UI 风格单元格绘制

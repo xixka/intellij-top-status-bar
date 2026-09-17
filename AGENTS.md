@@ -40,6 +40,8 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权，不得出现在任何文件或提交中）
 - 不修改 IDEA 内部 UI：不创建第二行 Toolbar、不反射访问内部实现、不碰 MainFrame；只用官方 Action System 机制
 - 目标平台 2024.1（sinceBuild 233）：升级平台前先复查上面「已知坑」清单中的 API 是否迁移
+- **已发布动作的 id 与显示文本永不改动/删除**：动作 id `TopStatusBar.Widget`、文本 `Top Status Bar`、设置页 id `topStatusBar` 一经发布即冻结。依据（intellij-community 源码已核实）：`CustomActionsSchema`/`ActionUrl` 按 **id** 持久化用户工具栏自定义，Add Action 树、Menus and Toolbars、Find Action 的显示文本全部由 `ActionManager` 按 id **实时解析**（`CustomizationUtil.acceptObjectIconAndText`、`ActionsTreeUtil.createGroup`）；父组匹配用的是**显示名**而非 id。改名/删除动作 = 用户的持久化条目变成幽灵条目（显示原始 id）或被静默丢弃，且旧安装未升级前会同时看到新旧两套条目
+- **每次发布版本号必须递增**：CI 已注入 `-PbuildVersion=0.1.<run_number>`（见 ci.yml），本地/正式构建需显式 `-PbuildVersion=x.y.z`。版本号重复会导致 IDE 把同 id 同版本 zip 视为"已安装"，不触发升级、旧构建继续生效——这正是"修了但用户还是看到旧条目（Top Status Bar / Top Status Bar Widget 双条目）"事故的根因
 
 ## 协作约定（仓库所有者已确认）
 

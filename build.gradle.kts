@@ -4,7 +4,13 @@ plugins {
 }
 
 group = "com.xixka"
-version = "0.1.0"
+
+// 版本说明（务必阅读 AGENTS.md 硬约束）：
+// - CI 每次 dev 构建注入 -PbuildVersion=0.1.<run_number>，保证 IDE 能识别为升级
+// - 本地构建/正式发布可显式指定：./gradlew buildPlugin -PbuildVersion=0.2.0
+// - 绝不能让两次发布携带相同版本号，否则 "Install Plugin from Disk" 不触发升级，
+//   旧构建继续生效，用户会看到已被删除/改名的旧条目（幽灵条目）
+version = (project.findProperty("buildVersion") as String?) ?: "0.1.0"
 
 repositories {
     mavenCentral()

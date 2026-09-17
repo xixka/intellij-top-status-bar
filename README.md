@@ -45,9 +45,14 @@
 - Gradle 8.8 + IntelliJ Platform Gradle Plugin 2.0.1
 - 目标平台：IntelliJ IDEA Community 2024.1（`sinceBuild=233`，兼容 2023.3+；依赖捆绑的 Git 插件 `Git4Idea`）
 - Java 17，源码编码 UTF-8
-- CI（GitHub Actions）执行 `./gradlew buildPlugin` 完成编译与打包验证
-- master 每次 CI 通过后自动发布 dev 预构建到 [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases)（tag `dev`），可直接下载安装
-- 本地调试沙盒：`./gradlew runIde`
+- CI（GitHub Actions）执行 `./gradlew buildPlugin -PbuildVersion=0.1.<run_number>` 完成编译与打包验证，每次构建版本号自动递增
+- master 每次 CI 通过后自动发布 dev 预构建到 [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases)（tag `dev`，文件名带版本号），可直接下载安装
+- 本地调试沙盒：`./gradlew runIde`；正式发布构建：`./gradlew buildPlugin -PbuildVersion=x.y.z`
+
+## 升级与排障
+
+- **安装 dev 构建后请确认版本号**：`Settings → Plugins → Top Status Bar` 显示的版本应与 Release 页面 asset 文件名一致；若仍是旧版本号，说明 IDE 未把它当作升级——先完全卸载旧版并重启，再 Install Plugin from Disk。
+- **Add Action 树中出现两个条目 / 工具栏出现幽灵条目**：说明 IDE 内仍残留旧构建（历史版本曾同时注册 `Top Status Bar` 组与 `Top Status Bar Widget` 动作，新版只保留单一动作 `Top Status Bar`，显示文本由平台按动作 id 实时解析）。处理：卸载插件并重启 → 安装最新 dev 构建 → 在 `Settings → Appearance & Behavior → Menus and Toolbars` 中删除 Main Toolbar 里的 `TopStatusBar` / `Top Status Bar Widget` 残留条目 → 重新 Add Action 添加 `Top Status Bar`。
 
 ## 状态项定制开发
 

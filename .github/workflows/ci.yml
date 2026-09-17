@@ -27,7 +27,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build plugin
-        run: ./gradlew buildPlugin --no-daemon --stacktrace
+        # 每次 CI 注入递增版本号（0.1.<run_number>）：
+        # 版本号不变时 IDE 不会把同 id 同版本的 zip 视为升级，旧构建继续生效，
+        # 已删除/改名的旧动作条目（幽灵条目）会一直残留，用户会误以为修复无效
+        run: ./gradlew buildPlugin -PbuildVersion="0.1.${{ github.run_number }}" --no-daemon --stacktrace
 
       - name: Upload plugin zip
         uses: actions/upload-artifact@v4
@@ -35,6 +38,20 @@ jobs:
           name: intellij-top-status-bar
           path: build/distributions/*.zip
           if-no-files-found: error
+
+      - name: Remove stale dev release assets
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            const dev = releases.data.find(r => r.tag_name === 'dev');
+            if (!dev) return;
+            for (const asset of dev.assets) {
+              core.info(`Deleting stale asset: ${asset.name}`);
+              await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            }
 
       - name: Publish dev build to GitHub Releases
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -46,5 +63,6 @@ jobs:
           body: |
             - Branch: ${{ github.ref_name }}
             - Commit: ${{ github.sha }}
+            - Version: 0.1.${{ github.run_number }}
             - Built at: ${{ github.event.head_commit.timestamp }}
           prerelease: true

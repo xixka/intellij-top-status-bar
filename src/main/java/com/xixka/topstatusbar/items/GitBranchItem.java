@@ -10,9 +10,14 @@ import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
 import git4idea.repo.GitRepositoryManager;
 import git4idea.ui.branch.BranchIconUtil;
+import git4idea.ui.branch.popup.GitBranchesTreePopup;
+import com.intellij.ui.awt.RelativePoint;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
+
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -94,6 +99,22 @@ public final class GitBranchItem extends AbstractStatusItem {
         setText(label);
         setTooltip(tooltip);
         setVisible(true);
+    }
+
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        Project effective = project != null ? project : project();
+        if (effective == null) {
+            return;
+        }
+        GitRepositoryManager manager = GitRepositoryManager.getInstance(effective);
+        GitRepository repository = currentRepository(effective, manager);
+        if (repository == null) {
+            return;
+        }
+        // Same popup as the native git branch widget.
+        GitBranchesTreePopup.create(effective, repository)
+                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
     }
 
     @Nullable

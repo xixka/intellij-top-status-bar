@@ -6,7 +6,10 @@ import com.xixka.topstatusbar.model.AbstractStatusItem;
 import com.xixka.topstatusbar.model.StatusSeverity;
 import com.xixka.topstatusbar.settings.TopStatusBarConfigurable;
 import com.xixka.topstatusbar.settings.TopStatusBarSettings;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 /**
  * 默认部署服务器: user-configured default deployment target; clicking the
@@ -29,7 +32,7 @@ public final class DeployServerItem extends AbstractStatusItem {
     }
 
     @Override
-    public void onClick(@Nullable Project project) {
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
         if (project == null) {
             return;
         }

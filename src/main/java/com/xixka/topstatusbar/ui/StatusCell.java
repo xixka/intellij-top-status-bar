@@ -71,7 +71,7 @@ public final class StatusCell extends JComponent {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                StatusCell.this.item.onClick(project);
+                StatusCell.this.item.onClick(project, StatusCell.this);
             }
         });
         setToolTipText(item.getTooltip());

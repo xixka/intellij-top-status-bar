@@ -5,7 +5,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 import java.util.Locale;
 import java.util.concurrent.Future;
@@ -49,7 +52,8 @@ public final class MemoryItem extends AbstractStatusItem {
     }
 
     @Override
-    public void onClick(@Nullable Project project) {
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        // Same as the native memory indicator widget: click runs the GC.
         System.gc();
         ApplicationManager.getApplication().invokeLater(this::update);
     }

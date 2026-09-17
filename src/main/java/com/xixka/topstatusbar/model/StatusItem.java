@@ -63,8 +63,11 @@ public interface StatusItem {
     }
 
     /**
-     * Invoked when the user clicks the status cell.
+     * Invoked when the user clicks the status cell on the EDT.
+     *
+     * @param source the clicked cell, usable to anchor popups (typically
+     *               shown below the cell since the bar sits at the top)
      */
-    default void onClick(@Nullable Project project) {
+    default void onClick(@Nullable Project project, @NotNull JComponent source) {
     }
 }

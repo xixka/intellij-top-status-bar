@@ -1,16 +1,27 @@
 package com.xixka.topstatusbar.items;
 
+import com.intellij.CommonBundle;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.ThrowableRunnable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.io.ReadOnlyAttributeUtil;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.io.IOException;
 
 /**
  * 只读特性: mirrors the native read-only attribute widget — an icon-only
  * cell that always shows while a regular file is open: a pencil when the
  * file is writable, a padlock when it is read-only. Clicking toggles the
- * file read-only attribute (see {@link #onClick}).
+ * file read-only attribute, exactly like the native widget.
  */
 public final class ReadOnlyItem extends CurrentFileItem {
 
@@ -40,4 +51,24 @@ public final class ReadOnlyItem extends CurrentFileItem {
                 : "当前文件为只读，点击切换为可写");
         setVisible(true);
     }
+
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        Editor editor = EditorContext.selectedEditor(project != null ? project : project());
+        VirtualFile file = EditorContext.virtualFile(editor);
+        if (file == null || file.getFileSystem().isReadOnly()) {
+            return;
+        }
+        // Same behavior as the native read-only attribute widget: save
+        // everything, then flip the file read-only attribute on disk.
+        FileDocumentManager.getInstance().saveAllDocuments();
+        try {
+            WriteAction.run((ThrowableRunnable<IOException>) () ->
+                    ReadOnlyAttributeUtil.setReadOnlyAttribute(file, file.isWritable()));
+        } catch (IOException e) {
+            Messages.showMessageDialog(project, e.getMessage(), CommonBundle.errorDialogTitle(), Messages.getErrorIcon());
+        }
+        update();
+    }
 }
+

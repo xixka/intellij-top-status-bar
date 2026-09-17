@@ -1,13 +1,26 @@
 package com.xixka.topstatusbar.items;
 
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.PopupStep;
+import com.intellij.openapi.ui.popup.util.BaseListPopupStep;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.xixka.topstatusbar.model.StatusSeverity;
+import com.intellij.util.LineSeparator;
+import com.intellij.ui.awt.RelativePoint;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.List;
 
 /**
  * 行分隔符: LF / CRLF / CR, detected from the raw bytes of the current file.
- * Detection runs on a background thread to avoid blocking the EDT.
+ * Detection runs on a background thread to avoid blocking the EDT. Clicking
+ * opens the same separator picker as the native widget.
  */
 public final class LineSeparatorItem extends CurrentFileItem {
 
@@ -45,6 +58,32 @@ public final class LineSeparatorItem extends CurrentFileItem {
                 setVisible(true);
             });
         });
+    }
+
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        Project effective = project != null ? project : project();
+        Editor editor = EditorContext.selectedEditor(effective);
+        VirtualFile file = EditorContext.virtualFile(editor);
+        if (file == null) {
+            return;
+        }
+        String current = file.getDetectedLineSeparator();
+        BaseListPopupStep<LineSeparator> step = new BaseListPopupStep<>("行分隔符", List.of(LineSeparator.values())) {
+            @Override
+            public Icon getIconFor(LineSeparator value) {
+                return value.getStringRepresentation().equals(current) ? AllIcons.Actions.Checked : null;
+            }
+
+            @Override
+            public PopupStep onChosen(LineSeparator selected, boolean finalChoice) {
+                LineSeparator choice = selected;
+                return doFinalStep(() -> ApplicationManager.getApplication().runWriteAction(
+                        () -> file.setDetectedLineSeparator(choice.getStringRepresentation())));
+            }
+        };
+        JBPopupFactory.getInstance().createListPopup(step)
+                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
     }
 
     private static String labelOf(@Nullable String separator) {

@@ -1,5 +1,12 @@
 package com.xixka.topstatusbar.items;
 
+import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.LogicalPosition;
@@ -13,6 +20,8 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 /**
  * 行列号: caret line/column of the current editor, updated live via the
@@ -121,5 +130,39 @@ public final class CaretPositionItem extends AbstractStatusItem {
         }
         setTooltip(tooltip);
         setVisible(true);
+    }
+
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        Project effective = project != null ? project : project();
+        Editor editor = EditorContext.selectedEditor(effective);
+        if (effective == null || editor == null) {
+            return;
+        }
+        // Same behavior as the native position widget: invoke the platform
+        // "Go to Line/Column" action on the current editor.
+        AnAction gotoLine = ActionManager.getInstance().getAction("GotoLine");
+        if (gotoLine == null) {
+            return;
+        }
+        DataContext base = DataManager.getInstance().getDataContext(source);
+        DataContext context = dataId -> {
+            if (CommonDataKeys.PROJECT.is(dataId)) {
+                return effective;
+            }
+            if (CommonDataKeys.EDITOR.is(dataId)) {
+                return editor;
+            }
+            if (CommonDataKeys.VIRTUAL_FILE.is(dataId)) {
+                return EditorContext.virtualFile(editor);
+            }
+            return base.getData(dataId);
+        };
+        AnActionEvent event = AnActionEvent.createFromAnAction(
+                gotoLine, null, ActionPlaces.EDITOR_TOOLBAR, context);
+        gotoLine.update(event);
+        if (event.getPresentation().isEnabled()) {
+            gotoLine.actionPerformed(event);
+        }
     }
 }

@@ -4,7 +4,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 import java.io.IOException;
 import java.net.NetworkInterface;
@@ -45,7 +48,7 @@ public final class NetworkLocationItem extends AbstractStatusItem {
     }
 
     @Override
-    public void onClick(@Nullable com.intellij.openapi.project.Project project) {
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
         scheduledCheck();
     }
 

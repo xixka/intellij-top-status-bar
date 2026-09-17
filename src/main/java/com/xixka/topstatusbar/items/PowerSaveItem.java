@@ -5,7 +5,10 @@ import com.intellij.ide.PowerSaveMode;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 /**
  * 省电模式: mirrors the native power-save widget — an icon-only cell that
@@ -51,6 +54,13 @@ public final class PowerSaveItem extends AbstractStatusItem {
     @Override
     public void refresh() {
         update();
+    }
+
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        // Same as the native power-save widget: click toggles the mode; the
+        // PowerSaveMode.TOPIC listener refreshes the icon right away.
+        PowerSaveMode.setEnabled(!PowerSaveMode.isEnabled());
     }
 
     private void update() {

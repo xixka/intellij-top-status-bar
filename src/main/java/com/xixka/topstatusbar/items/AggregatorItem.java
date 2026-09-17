@@ -10,6 +10,8 @@ import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
+
 import java.util.List;
 
 /**
@@ -73,7 +75,7 @@ public final class AggregatorItem extends AbstractStatusItem {
     }
 
     @Override
-    public void onClick(@Nullable Project project) {
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
         if (project == null) {
             return;
         }

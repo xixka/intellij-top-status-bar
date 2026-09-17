@@ -1,0 +1,9 @@
+<idea-plugin>
+    <id>com.xixka.topstatusbar</id>
+    <name>Top Status Bar</name>
+    <vendor>xixka</vendor>
+    <description><![CDATA[A compact, New UI-style status bar rendered as a single custom toolbar component. It can be added to the Main Toolbar via Settings | Appearance and Behavior | Menus and Toolbars.]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
+</idea-plugin>

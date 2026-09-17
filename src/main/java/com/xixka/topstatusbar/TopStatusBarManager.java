@@ -5,6 +5,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.items.CaretPositionItem;
+import com.xixka.topstatusbar.items.CodeBuddyItem;
+import com.xixka.topstatusbar.items.AggregatorItem;
+import com.xixka.topstatusbar.items.DeployServerItem;
 import com.xixka.topstatusbar.items.EncodingItem;
 import com.xixka.topstatusbar.items.FileSystemSyncItem;
 import com.xixka.topstatusbar.items.GitBranchItem;
@@ -13,11 +16,13 @@ import com.xixka.topstatusbar.items.JsonSchemaItem;
 import com.xixka.topstatusbar.items.LanguageItem;
 import com.xixka.topstatusbar.items.LineSeparatorItem;
 import com.xixka.topstatusbar.items.MemoryItem;
+import com.xixka.topstatusbar.items.NetworkLocationItem;
 import com.xixka.topstatusbar.items.PowerSaveItem;
 import com.xixka.topstatusbar.items.ReadOnlyItem;
 import com.xixka.topstatusbar.items.SelectionModeItem;
 import com.xixka.topstatusbar.items.StatusTextItem;
 import com.xixka.topstatusbar.model.StatusItem;
+import com.xixka.topstatusbar.settings.TopStatusBarSettings;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -71,9 +76,17 @@ public final class TopStatusBarManager implements Disposable {
         }
         items.clear();
 
+        TopStatusBarSettings settings = TopStatusBarSettings.getInstance(project);
+        if (settings.isEnabled()) {
+            for (StatusItem candidate : createItems()) {
+                if (settings.isItemEnabled(candidate.getId())) {
+                    items.add(candidate);
+                }
+            }
+        }
+
         Runnable notifyChanged = () -> ApplicationManager.getApplication().invokeLater(this::fireChanged);
-        for (StatusItem item : createItems()) {
-            items.add(item);
+        for (StatusItem item : items) {
             item.install(project, notifyChanged);
         }
         ApplicationManager.getApplication().invokeLater(this::fireChanged);
@@ -82,18 +95,22 @@ public final class TopStatusBarManager implements Disposable {
     protected List<StatusItem> createItems() {
         List<StatusItem> result = new ArrayList<>();
         result.add(new StatusTextItem());
+        result.add(new FileSystemSyncItem());
+        result.add(new CodeBuddyItem());
+        result.add(new AggregatorItem());
+        result.add(new NetworkLocationItem());
+        result.add(new DeployServerItem());
         result.add(new CaretPositionItem());
         result.add(new LanguageItem());
         result.add(new LineSeparatorItem());
         result.add(new EncodingItem());
+        result.add(new PowerSaveItem());
         result.add(new SelectionModeItem());
         result.add(new IndentItem());
-        result.add(new ReadOnlyItem());
         result.add(new JsonSchemaItem());
         result.add(new GitBranchItem());
+        result.add(new ReadOnlyItem());
         result.add(new MemoryItem());
-        result.add(new FileSystemSyncItem());
-        result.add(new PowerSaveItem());
         return result;
     }
 
@@ -115,6 +132,16 @@ public final class TopStatusBarManager implements Disposable {
     }
 
     private void fireChanged() {
+        AggregatorItem aggregator = null;
+        for (StatusItem item : items) {
+            if (item instanceof AggregatorItem) {
+                aggregator = (AggregatorItem) item;
+                break;
+            }
+        }
+        if (aggregator != null) {
+            aggregator.updateSummary(getItems());
+        }
         for (Runnable listener : listeners) {
             listener.run();
         }

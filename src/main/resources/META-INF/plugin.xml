@@ -11,6 +11,10 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.xixka.topstatusbar.TopStatusBarManager"/>
+        <projectConfigurable id="topStatusBar"
+                              parentId="appearance"
+                              displayName="Top Status Bar"
+                              instance="com.xixka.topstatusbar.settings.TopStatusBarConfigurable"/>
         <notificationGroup id="TopStatusBar" displayType="BALLOON"/>
     </extensions>
 

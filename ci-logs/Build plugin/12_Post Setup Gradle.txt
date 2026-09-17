@@ -1,0 +1,16 @@
+﻿2026-09-17T09:48:02.2157260Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-17T09:48:02.2158759Z Post job cleanup.
+2026-09-17T09:48:02.3809754Z In post-action step
+2026-09-17T09:48:02.3818492Z ##[group]Stopping Gradle daemons
+2026-09-17T09:48:02.3819090Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-8.8-bin/dl7vupf4psengwqhwktix4v1/gradle-8.8
+2026-09-17T09:48:02.3829634Z [command]/home/runner/.gradle/wrapper/dists/gradle-8.8-bin/dl7vupf4psengwqhwktix4v1/gradle-8.8/bin/gradle --stop
+2026-09-17T09:48:03.0521227Z No Gradle daemons are running.
+2026-09-17T09:48:03.0605146Z ##[endgroup]
+2026-09-17T09:48:03.0605721Z Not performing cache-cleanup due to build failure
+2026-09-17T09:48:03.0606353Z ##[group]Caching Gradle state
+2026-09-17T09:48:03.5029696Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/intellij-top-status-bar/intellij-top-status-bar --files-from manifest.txt --use-compress-program zstdmt
+2026-09-17T09:48:04.3201117Z Sent 17715472 of 17715472 (100.0%), 30.7 MBs/sec
+2026-09-17T09:48:04.4605888Z Saved cache entry with key gradle-home-v1|Linux-X64|build[27df40b80d25f4e0c5be504ed712742e]-b7b47c8b7e0c64b0a748d64cfad9ce95235b876e from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 968ms
+2026-09-17T09:48:04.4607138Z ##[endgroup]
+2026-09-17T09:48:04.4609966Z Generating Job Summary
+2026-09-17T09:48:04.4618777Z Completed post-action step

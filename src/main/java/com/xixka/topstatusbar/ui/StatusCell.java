@@ -2,9 +2,9 @@ package com.xixka.topstatusbar.ui;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
+import com.intellij.util.ui.GraphicsUtil;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
 import com.xixka.topstatusbar.model.StatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -111,13 +111,15 @@ public final class StatusCell extends JComponent {
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         try {
-            // Apply the platform-standard rendering hints (anti-aliasing,
-            // text AA mode matching the IDE "Antialiasing" UISettings), so
-            // the custom-painted text stays as crisp as the rest of the IDE
-            // on HiDPI screens. Without this, drawString falls back to the
-            // Java2D gray-AA default, which looks blurry next to native
-            // LCD-subpixel-rendered toolbar text at 125%-200% scaling.
-            UIUtil.setupAntialiasing(g2);
+            // Apply the platform-standard text anti-aliasing hints (desktop
+            // LCD hints, see GraphicsUtil#setupAntialiasing, verified against
+            // intellij-community 233.14475/241.14494), so the custom-painted
+            // text stays as crisp as the rest of the IDE on HiDPI screens.
+            // Without this, drawString falls back to the Java2D gray-AA
+            // default, which looks blurry next to native toolbar text at
+            // 125%-200% scaling. Shape AA covers the rounded hover background.
+            GraphicsUtil.setupAntialiasing(g2);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (hover) {
                 float arc = JBUI.scale(6f);
                 g2.setColor(pressed ? PRESSED_BACKGROUND : HOVER_BACKGROUND);

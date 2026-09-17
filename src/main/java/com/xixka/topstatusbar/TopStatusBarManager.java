@@ -4,6 +4,14 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import com.xixka.topstatusbar.items.CaretPositionItem;
+import com.xixka.topstatusbar.items.EncodingItem;
+import com.xixka.topstatusbar.items.IndentItem;
+import com.xixka.topstatusbar.items.JsonSchemaItem;
+import com.xixka.topstatusbar.items.LanguageItem;
+import com.xixka.topstatusbar.items.LineSeparatorItem;
+import com.xixka.topstatusbar.items.ReadOnlyItem;
+import com.xixka.topstatusbar.items.SelectionModeItem;
 import com.xixka.topstatusbar.items.StatusTextItem;
 import com.xixka.topstatusbar.model.StatusItem;
 import org.jetbrains.annotations.NotNull;
@@ -70,6 +78,14 @@ public final class TopStatusBarManager implements Disposable {
     protected List<StatusItem> createItems() {
         List<StatusItem> result = new ArrayList<>();
         result.add(new StatusTextItem());
+        result.add(new CaretPositionItem());
+        result.add(new LanguageItem());
+        result.add(new LineSeparatorItem());
+        result.add(new EncodingItem());
+        result.add(new SelectionModeItem());
+        result.add(new IndentItem());
+        result.add(new ReadOnlyItem());
+        result.add(new JsonSchemaItem());
         return result;
     }
 

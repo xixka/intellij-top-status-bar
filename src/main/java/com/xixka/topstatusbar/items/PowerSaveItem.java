@@ -21,6 +21,11 @@ public final class PowerSaveItem extends AbstractStatusItem {
     }
 
     @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "PowerSaveMode";
+    }
+
+    @Override
     protected void install() {
         connection = ApplicationManager.getApplication().getMessageBus().connect();
         connection.subscribe(PowerSaveMode.TOPIC, new PowerSaveMode.Listener() {

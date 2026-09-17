@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 只读特性: visible (highlighted) only while the current file is read-only.
@@ -12,6 +13,11 @@ public final class ReadOnlyItem extends CurrentFileItem {
 
     public ReadOnlyItem() {
         super("readOnly", 75);
+    }
+
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "ReadOnlyAttribute";
     }
 
     @Override

@@ -29,6 +29,11 @@ public final class GitBranchItem extends AbstractStatusItem {
     }
 
     @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "git";
+    }
+
+    @Override
     protected void install() {
         Project project = project();
         if (project != null) {

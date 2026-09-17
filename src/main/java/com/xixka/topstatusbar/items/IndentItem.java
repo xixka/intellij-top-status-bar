@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 缩进: tab / space indent effective for the current file.
@@ -13,6 +14,11 @@ public final class IndentItem extends CurrentFileItem {
 
     public IndentItem() {
         super("indent", 65);
+    }
+
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "CodeStyleStatusBarWidget";
     }
 
     @Override

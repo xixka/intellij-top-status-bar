@@ -2,6 +2,7 @@ package com.xixka.topstatusbar.items;
 
 import com.intellij.openapi.editor.Editor;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 编辑器选择模式: visible only while column (block) selection mode is
@@ -11,6 +12,11 @@ public final class SelectionModeItem extends CurrentFileItem {
 
     public SelectionModeItem() {
         super("selectionMode", 45);
+    }
+
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "InsertOverwrite";
     }
 
     @Override

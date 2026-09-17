@@ -45,6 +45,11 @@ public final class CaretPositionItem extends AbstractStatusItem {
     }
 
     @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "Position";
+    }
+
+    @Override
     protected void install() {
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         multicaster.addCaretListener(caretListener);

@@ -28,6 +28,11 @@ public final class MemoryItem extends AbstractStatusItem {
     }
 
     @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "Memory";
+    }
+
+    @Override
     protected void install() {
         setIcon(AllIcons.Actions.GC);
         refreshTask = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(

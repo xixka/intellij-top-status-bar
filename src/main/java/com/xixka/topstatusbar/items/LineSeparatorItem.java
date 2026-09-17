@@ -16,6 +16,11 @@ public final class LineSeparatorItem extends CurrentFileItem {
     }
 
     @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "LineSeparator";
+    }
+
+    @Override
     protected void update() {
         Editor editor = EditorContext.selectedEditor(project());
         VirtualFile file = EditorContext.virtualFile(editor);

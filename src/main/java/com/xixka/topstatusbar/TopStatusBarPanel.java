@@ -172,8 +172,14 @@ final class TopStatusBarPanel extends JComponent {
     }
 
     private void applyVisibility() {
+        TopStatusBarManager currentManager = manager;
         for (StatusCell cell : cells) {
-            cell.setVisible(cell.item().isVisible());
+            boolean visible = cell.item().isVisible();
+            if (visible && currentManager != null
+                    && currentManager.isSuppressedByPlatformWidget(cell.item())) {
+                visible = false;
+            }
+            cell.setVisible(visible);
         }
         int available = getWidth();
         if (available <= 0) {

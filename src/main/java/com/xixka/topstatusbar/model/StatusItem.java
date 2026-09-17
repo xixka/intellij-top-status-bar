@@ -24,6 +24,16 @@ public interface StatusItem {
      */
     int getPriority();
 
+    /**
+     * Optional ID of the built-in IDE status bar widget this item mirrors.
+     * When set, the item is hidden while the corresponding widget is turned
+     * off in the IDE status bar (context menu or Settings), so the top bar
+     * stays in sync with the native widget toggles.
+     */
+    default @Nullable String getPlatformWidgetId() {
+        return null;
+    }
+
     boolean isVisible();
 
     @NotNull

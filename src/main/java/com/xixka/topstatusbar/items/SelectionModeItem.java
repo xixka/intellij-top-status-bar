@@ -20,7 +20,7 @@ public final class SelectionModeItem extends CurrentFileItem {
             setVisible(false);
             return;
         }
-        boolean columnMode = editor.getSettings().isColumnMode();
+        boolean columnMode = editor.isColumnMode();
         if (columnMode) {
             setText("列选择");
             setSeverity(StatusSeverity.INFO);

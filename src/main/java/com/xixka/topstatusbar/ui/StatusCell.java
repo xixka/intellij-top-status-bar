@@ -3,7 +3,7 @@ package com.xixka.topstatusbar.ui;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBFont;
-import com.intellij.util.ui.JBUIScale;
+import com.intellij.util.ui.JBUI;
 import com.xixka.topstatusbar.model.StatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -90,8 +90,8 @@ public final class StatusCell extends JComponent {
         FontMetrics metrics = getFontMetrics(getFont());
         Icon icon = item.getIcon();
         String text = item.getText();
-        int gap = JBUIScale.scale(4);
-        int padding = JBUIScale.scale(8);
+        int gap = JBUI.scale(4);
+        int padding = JBUI.scale(8);
         int width = padding * 2;
         if (icon != null) {
             width += icon.getIconWidth();
@@ -102,7 +102,7 @@ public final class StatusCell extends JComponent {
         if (!text.isEmpty()) {
             width += metrics.stringWidth(text);
         }
-        int height = Math.max(icon == null ? 0 : icon.getIconHeight(), metrics.getHeight()) + JBUIScale.scale(4);
+        int height = Math.max(icon == null ? 0 : icon.getIconHeight(), metrics.getHeight()) + JBUI.scale(4);
         return new Dimension(width, height);
     }
 
@@ -111,15 +111,15 @@ public final class StatusCell extends JComponent {
         Graphics2D g2 = (Graphics2D) g.create();
         try {
             if (hover) {
-                float arc = JBUIScale.scale(6f);
+                float arc = JBUI.scale(6f);
                 g2.setColor(pressed ? PRESSED_BACKGROUND : HOVER_BACKGROUND);
                 g2.fill(new RoundRectangle2D.Float(0f, 0f, getWidth() - 1f, getHeight() - 1f, arc, arc));
             }
             Icon icon = item.getIcon();
             String text = item.getText();
             FontMetrics metrics = g2.getFontMetrics();
-            int padding = JBUIScale.scale(8);
-            int gap = JBUIScale.scale(4);
+            int padding = JBUI.scale(8);
+            int gap = JBUI.scale(4);
             int x = padding;
             if (icon != null) {
                 int iconY = Math.max(0, (getHeight() - icon.getIconHeight()) / 2);

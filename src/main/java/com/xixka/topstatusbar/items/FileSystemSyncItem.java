@@ -1,7 +1,7 @@
 package com.xixka.topstatusbar.items;
 
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.vfs.BulkFileListener;
+import com.intellij.openapi.vfs.newvfs.BulkFileListener;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
 import com.intellij.util.messages.MessageBusConnection;

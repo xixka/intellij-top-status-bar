@@ -3,6 +3,7 @@ package com.xixka.topstatusbar.items;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.PowerSaveMode;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import org.jetbrains.annotations.NotNull;

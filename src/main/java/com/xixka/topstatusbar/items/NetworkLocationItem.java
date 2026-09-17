@@ -1,6 +1,7 @@
 package com.xixka.topstatusbar.items;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import com.xixka.topstatusbar.model.StatusSeverity;

@@ -72,14 +72,14 @@ public final class LineSeparatorItem extends CurrentFileItem {
         BaseListPopupStep<LineSeparator> step = new BaseListPopupStep<>("行分隔符", List.of(LineSeparator.values())) {
             @Override
             public Icon getIconFor(LineSeparator value) {
-                return value.getStringRepresentation().equals(current) ? AllIcons.Actions.Checked : null;
+                return value.getSeparatorString().equals(current) ? AllIcons.Actions.Checked : null;
             }
 
             @Override
             public PopupStep onChosen(LineSeparator selected, boolean finalChoice) {
                 LineSeparator choice = selected;
                 return doFinalStep(() -> ApplicationManager.getApplication().runWriteAction(
-                        () -> file.setDetectedLineSeparator(choice.getStringRepresentation())));
+                        () -> file.setDetectedLineSeparator(choice.getSeparatorString())));
             }
         };
         JBPopupFactory.getInstance().createListPopup(step)

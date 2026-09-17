@@ -1,14 +1,13 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.CommonBundle;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.ThrowableRunnable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.ThrowableRunnable;
 import com.intellij.util.io.ReadOnlyAttributeUtil;
 import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.NotNull;
@@ -66,7 +65,7 @@ public final class ReadOnlyItem extends CurrentFileItem {
             WriteAction.run((ThrowableRunnable<IOException>) () ->
                     ReadOnlyAttributeUtil.setReadOnlyAttribute(file, file.isWritable()));
         } catch (IOException e) {
-            Messages.showMessageDialog(project, e.getMessage(), CommonBundle.errorDialogTitle(), Messages.getErrorIcon());
+            Messages.showErrorDialog(project, e.getMessage(), "无法切换只读属性");
         }
         update();
     }

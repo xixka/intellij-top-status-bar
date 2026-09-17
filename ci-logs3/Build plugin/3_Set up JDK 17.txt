@@ -1,0 +1,31 @@
+﻿2026-09-17T12:03:38.7551455Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-17T12:03:38.7556959Z ##[group]Run actions/setup-java@v4
+2026-09-17T12:03:38.7558573Z with:
+2026-09-17T12:03:38.7559509Z   distribution: temurin
+2026-09-17T12:03:38.7560436Z   java-version: 17
+2026-09-17T12:03:38.7561322Z   java-package: jdk
+2026-09-17T12:03:38.7562184Z   check-latest: false
+2026-09-17T12:03:38.7563060Z   server-id: github
+2026-09-17T12:03:38.7563949Z   server-username: GITHUB_ACTOR
+2026-09-17T12:03:38.7564981Z   server-password: GITHUB_TOKEN
+2026-09-17T12:03:38.7565996Z   overwrite-settings: true
+2026-09-17T12:03:38.7566955Z   job-status: success
+2026-09-17T12:03:38.7575976Z   token: ***
+2026-09-17T12:03:38.7576802Z ##[endgroup]
+2026-09-17T12:03:38.9302956Z ##[warning]setup-java v4 is deprecated and will no longer receive updates. Please migrate to actions/setup-java@v5.
+2026-09-17T12:03:38.9314102Z ##[group]Installed distributions
+2026-09-17T12:03:38.9341769Z Resolved Java 17.0.20+1 from tool-cache
+2026-09-17T12:03:38.9342960Z Setting Java 17.0.20+1 as the default
+2026-09-17T12:03:38.9353115Z (node:2293) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-17T12:03:38.9355509Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-17T12:03:38.9357680Z Creating toolchains.xml for JDK version 17 from temurin
+2026-09-17T12:03:38.9435061Z Writing to /home/runner/.m2/toolchains.xml
+2026-09-17T12:03:38.9436348Z 
+2026-09-17T12:03:38.9436942Z Java configuration:
+2026-09-17T12:03:38.9438269Z   Distribution: temurin
+2026-09-17T12:03:38.9439206Z   Version: 17.0.20+1
+2026-09-17T12:03:38.9440905Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+2026-09-17T12:03:38.9442701Z 
+2026-09-17T12:03:38.9444395Z ##[endgroup]
+2026-09-17T12:03:38.9462625Z Creating settings.xml with server-id: github
+2026-09-17T12:03:38.9480299Z Writing to /home/runner/.m2/settings.xml

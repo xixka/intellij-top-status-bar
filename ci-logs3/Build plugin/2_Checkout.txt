@@ -1,0 +1,74 @@
+﻿2026-09-17T12:03:38.0760791Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-17T12:03:38.0771879Z ##[group]Run actions/checkout@v4
+2026-09-17T12:03:38.0773227Z with:
+2026-09-17T12:03:38.0774165Z   repository: xixka/intellij-top-status-bar
+2026-09-17T12:03:38.0783759Z   token: ***
+2026-09-17T12:03:38.0784641Z   ssh-strict: true
+2026-09-17T12:03:38.0785510Z   ssh-user: git
+2026-09-17T12:03:38.0786395Z   persist-credentials: true
+2026-09-17T12:03:38.0787373Z   clean: true
+2026-09-17T12:03:38.0788398Z   sparse-checkout-cone-mode: true
+2026-09-17T12:03:38.0789443Z   fetch-depth: 1
+2026-09-17T12:03:38.0790315Z   fetch-tags: false
+2026-09-17T12:03:38.0791183Z   show-progress: true
+2026-09-17T12:03:38.0792062Z   lfs: false
+2026-09-17T12:03:38.0792861Z   submodules: false
+2026-09-17T12:03:38.0793807Z   set-safe-directory: true
+2026-09-17T12:03:38.0794805Z   allow-unsafe-pr-checkout: false
+2026-09-17T12:03:38.0796111Z ##[endgroup]
+2026-09-17T12:03:38.1920124Z Syncing repository: xixka/intellij-top-status-bar
+2026-09-17T12:03:38.1923721Z ##[group]Getting Git version info
+2026-09-17T12:03:38.1926178Z Working directory is '/home/runner/work/intellij-top-status-bar/intellij-top-status-bar'
+2026-09-17T12:03:38.1929718Z [command]/usr/bin/git version
+2026-09-17T12:03:38.1953269Z git version 2.55.0
+2026-09-17T12:03:38.1991053Z ##[endgroup]
+2026-09-17T12:03:38.2001396Z Temporarily overriding HOME='/home/runner/work/_temp/f12e1fd8-2911-46f1-8079-6a3e6bfcd040' before making global git config changes
+2026-09-17T12:03:38.2006237Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-17T12:03:38.2009991Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/intellij-top-status-bar/intellij-top-status-bar
+2026-09-17T12:03:38.2059587Z Deleting the contents of '/home/runner/work/intellij-top-status-bar/intellij-top-status-bar'
+2026-09-17T12:03:38.2064353Z ##[group]Initializing the repository
+2026-09-17T12:03:38.2068876Z [command]/usr/bin/git init /home/runner/work/intellij-top-status-bar/intellij-top-status-bar
+2026-09-17T12:03:38.2170033Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-17T12:03:38.2173333Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-17T12:03:38.2176452Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-17T12:03:38.2179150Z hint: call:
+2026-09-17T12:03:38.2180433Z hint:
+2026-09-17T12:03:38.2182099Z hint: 	git config --global init.defaultBranch <name>
+2026-09-17T12:03:38.2184165Z hint:
+2026-09-17T12:03:38.2186027Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-17T12:03:38.2189393Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-17T12:03:38.2191871Z hint:
+2026-09-17T12:03:38.2193430Z hint: 	git branch -m <name>
+2026-09-17T12:03:38.2194953Z hint:
+2026-09-17T12:03:38.2197000Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-17T12:03:38.2201281Z Initialized empty Git repository in /home/runner/work/intellij-top-status-bar/intellij-top-status-bar/.git/
+2026-09-17T12:03:38.2207513Z [command]/usr/bin/git remote add origin https://github.com/xixka/intellij-top-status-bar
+2026-09-17T12:03:38.2237701Z ##[endgroup]
+2026-09-17T12:03:38.2240863Z ##[group]Disabling automatic garbage collection
+2026-09-17T12:03:38.2243296Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-17T12:03:38.2278615Z ##[endgroup]
+2026-09-17T12:03:38.2280366Z ##[group]Setting up auth
+2026-09-17T12:03:38.2288586Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-17T12:03:38.2330774Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-17T12:03:38.2672254Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-17T12:03:38.2714824Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-17T12:03:38.2978555Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-17T12:03:38.3015509Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-17T12:03:38.3241044Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-17T12:03:38.3281327Z ##[endgroup]
+2026-09-17T12:03:38.3282840Z ##[group]Fetching the repository
+2026-09-17T12:03:38.3292546Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +201b2aafacc7a7bb934c083f49aa3f1951981f2b:refs/remotes/origin/master
+2026-09-17T12:03:38.6817507Z From https://github.com/xixka/intellij-top-status-bar
+2026-09-17T12:03:38.6821137Z  * [new ref]         201b2aafacc7a7bb934c083f49aa3f1951981f2b -> origin/master
+2026-09-17T12:03:38.6828333Z ##[endgroup]
+2026-09-17T12:03:38.6831333Z ##[group]Determining the checkout info
+2026-09-17T12:03:38.6834934Z ##[endgroup]
+2026-09-17T12:03:38.6836899Z [command]/usr/bin/git sparse-checkout disable
+2026-09-17T12:03:38.6886205Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-17T12:03:38.6923459Z ##[group]Checking out the ref
+2026-09-17T12:03:38.6938554Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+2026-09-17T12:03:38.7061626Z Reset branch 'master'
+2026-09-17T12:03:38.7072592Z branch 'master' set up to track 'origin/master'.
+2026-09-17T12:03:38.7079769Z ##[endgroup]
+2026-09-17T12:03:38.7133018Z [command]/usr/bin/git log -1 --format=%H
+2026-09-17T12:03:38.7153337Z 201b2aafacc7a7bb934c083f49aa3f1951981f2b

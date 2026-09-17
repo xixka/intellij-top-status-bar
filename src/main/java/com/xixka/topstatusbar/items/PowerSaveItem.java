@@ -1,15 +1,17 @@
 package com.xixka.topstatusbar.items;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.PowerSaveMode;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
-import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 省电模式: visible (highlighted) only while Power Save Mode is enabled,
- * updated live via the app-level {@link PowerSaveMode#TOPIC} topic.
+ * 省电模式: mirrors the native power-save widget — an icon-only cell that
+ * always shows while the widget is enabled: an eye while power save is off,
+ * the power-save icon while it is on. Clicking toggles the mode, updated
+ * live via the app-level {@link PowerSaveMode#TOPIC} topic.
  */
 public final class PowerSaveItem extends AbstractStatusItem {
 
@@ -53,14 +55,11 @@ public final class PowerSaveItem extends AbstractStatusItem {
 
     private void update() {
         boolean enabled = PowerSaveMode.isEnabled();
-        if (enabled) {
-            setText("省电模式");
-            setSeverity(StatusSeverity.WARNING);
-            setTooltip("Power Save Mode 已开启：代码洞察与自动补全暂停，File → Power Save Mode 可关闭");
-            setVisible(true);
-        } else {
-            setSeverity(StatusSeverity.NORMAL);
-            setVisible(false);
-        }
+        setIcon(enabled ? AllIcons.General.InspectionsPowerSaveMode : AllIcons.General.InspectionsEye);
+        setText("");
+        setTooltip(enabled
+                ? "Power Save Mode 已开启：代码洞察与自动补全暂停，点击关闭"
+                : "Power Save Mode 已关闭，点击开启（将暂停代码洞察与自动补全）");
+        setVisible(true);
     }
 }

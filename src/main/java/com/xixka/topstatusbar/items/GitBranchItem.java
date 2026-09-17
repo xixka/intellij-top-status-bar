@@ -9,6 +9,7 @@ import git4idea.GitBranch;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
 import git4idea.repo.GitRepositoryManager;
+import git4idea.ui.branch.BranchIconUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,6 +90,7 @@ public final class GitBranchItem extends AbstractStatusItem {
         if (repositoryCount > 1) {
             tooltip += "（当前仓库：" + repository.getRoot().getName() + "，共 " + repositoryCount + " 个仓库）";
         }
+        setIcon(BranchIconUtil.Companion.getBranchIcon(repository));
         setText(label);
         setTooltip(tooltip);
         setVisible(true);

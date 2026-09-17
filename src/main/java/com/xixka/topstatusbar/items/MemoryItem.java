@@ -1,6 +1,5 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -34,7 +33,7 @@ public final class MemoryItem extends AbstractStatusItem {
 
     @Override
     protected void install() {
-        setIcon(AllIcons.Actions.GC);
+        // Plain text like the native memory indicator widget: no icon.
         refreshTask = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(
                 this::scheduledUpdate, UPDATE_INTERVAL_SECONDS, UPDATE_INTERVAL_SECONDS, TimeUnit.SECONDS);
         ApplicationManager.getApplication().invokeLater(this::update);

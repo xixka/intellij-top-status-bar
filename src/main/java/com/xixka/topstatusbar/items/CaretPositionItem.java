@@ -98,14 +98,24 @@ public final class CaretPositionItem extends AbstractStatusItem {
             setVisible(false);
             return;
         }
+        // Same format as the native position widget: "line:column" for a
+        // single caret, the caret count when several carets are active, and
+        // the selected character count appended while a selection exists.
         LogicalPosition position = editor.getCaretModel().getLogicalPosition();
         int caretCount = editor.getCaretModel().getCaretCount();
-        String text = "Ln " + (position.line + 1) + ", Col " + (position.column + 1);
+        String text;
         if (caretCount > 1) {
-            text += " ×" + caretCount;
+            text = caretCount + " carets";
+        } else {
+            text = (position.line + 1) + ":" + (position.column + 1);
+            int selectionStart = editor.getCaretModel().getCurrentCaret().getSelectionStart();
+            int selectionEnd = editor.getCaretModel().getCurrentCaret().getSelectionEnd();
+            if (selectionEnd > selectionStart) {
+                text += "（" + (selectionEnd - selectionStart) + " 字符）";
+            }
         }
         setText(text);
-        String tooltip = "行列号：" + text;
+        String tooltip = "跳转到行/列（当前 " + text + "）";
         if (caretCount > 1) {
             tooltip += "（" + caretCount + " 个光标）";
         }

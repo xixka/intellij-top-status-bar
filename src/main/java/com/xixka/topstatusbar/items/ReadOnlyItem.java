@@ -1,13 +1,16 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.openapi.editor.Document;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 只读特性: visible (highlighted) only while the current file is read-only.
+ * 只读特性: mirrors the native read-only attribute widget — an icon-only
+ * cell that always shows while a regular file is open: a pencil when the
+ * file is writable, a padlock when it is read-only. Clicking toggles the
+ * file read-only attribute (see {@link #onClick}).
  */
 public final class ReadOnlyItem extends CurrentFileItem {
 
@@ -24,20 +27,17 @@ public final class ReadOnlyItem extends CurrentFileItem {
     protected void update() {
         Editor editor = EditorContext.selectedEditor(project());
         VirtualFile file = EditorContext.virtualFile(editor);
-        Document document = EditorContext.document(editor);
-        if (file == null || document == null) {
+        if (file == null || file.getFileSystem().isReadOnly()) {
             setVisible(false);
             return;
         }
-        boolean writable = file.isWritable() && document.isWritable();
-        if (writable) {
-            setSeverity(StatusSeverity.NORMAL);
-            setVisible(false);
-        } else {
-            setText("只读");
-            setSeverity(StatusSeverity.WARNING);
-            setTooltip("当前文件为只读，修改不会被保存");
-            setVisible(true);
-        }
+        boolean writable = file.isWritable();
+        setIcon(writable ? AllIcons.Ide.Readwrite : AllIcons.Ide.Readonly);
+        setText("");
+        setSeverity(StatusSeverity.NORMAL);
+        setTooltip(writable
+                ? "当前文件可写，点击切换为只读"
+                : "当前文件为只读，点击切换为可写");
+        setVisible(true);
     }
 }

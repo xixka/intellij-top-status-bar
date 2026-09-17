@@ -46,6 +46,7 @@
 - 目标平台：IntelliJ IDEA Community 2024.1（`sinceBuild=233`，兼容 2023.3+；依赖捆绑的 Git 插件 `Git4Idea`）
 - Java 17，源码编码 UTF-8
 - CI（GitHub Actions）执行 `./gradlew buildPlugin` 完成编译与打包验证
+- master 每次 CI 通过后自动发布 dev 预构建到 [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases)（tag `dev`），可直接下载安装
 - 本地调试沙盒：`./gradlew runIde`
 
 ## 状态项定制开发

@@ -40,3 +40,9 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权，不得出现在任何文件或提交中）
 - 不修改 IDEA 内部 UI：不创建第二行 Toolbar、不反射访问内部实现、不碰 MainFrame；只用官方 Action System 机制
 - 目标平台 2024.1（sinceBuild 233）：升级平台前先复查上面「已知坑」清单中的 API 是否迁移
+
+## 协作约定（仓库所有者已确认）
+
+- 发布仅走 GitHub Releases：master 每次 CI 通过后自动更新 dev 预发布（tag `dev`，见 ci.yml 末步）；正式版人工上传 `build/distributions/*.zip`；不上架 JetBrains Marketplace
+- 分支模型：单人直推 master，CI 绿灯是唯一合入门槛，不建 PR
+- 出问题一律 fix-forward：追加修复提交推进，不 revert、不改写已推送历史

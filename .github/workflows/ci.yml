@@ -11,6 +11,8 @@ jobs:
     name: Build plugin
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,3 +35,16 @@ jobs:
           name: intellij-top-status-bar
           path: build/distributions/*.zip
           if-no-files-found: error
+
+      - name: Publish dev build to GitHub Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: dev
+          name: dev
+          files: build/distributions/*.zip
+          body: |
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Built at: ${{ github.event.head_commit.timestamp }}
+          prerelease: true

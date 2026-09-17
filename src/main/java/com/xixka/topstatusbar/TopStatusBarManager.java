@@ -6,10 +6,14 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.items.CaretPositionItem;
 import com.xixka.topstatusbar.items.EncodingItem;
+import com.xixka.topstatusbar.items.FileSystemSyncItem;
+import com.xixka.topstatusbar.items.GitBranchItem;
 import com.xixka.topstatusbar.items.IndentItem;
 import com.xixka.topstatusbar.items.JsonSchemaItem;
 import com.xixka.topstatusbar.items.LanguageItem;
 import com.xixka.topstatusbar.items.LineSeparatorItem;
+import com.xixka.topstatusbar.items.MemoryItem;
+import com.xixka.topstatusbar.items.PowerSaveItem;
 import com.xixka.topstatusbar.items.ReadOnlyItem;
 import com.xixka.topstatusbar.items.SelectionModeItem;
 import com.xixka.topstatusbar.items.StatusTextItem;
@@ -86,6 +90,10 @@ public final class TopStatusBarManager implements Disposable {
         result.add(new IndentItem());
         result.add(new ReadOnlyItem());
         result.add(new JsonSchemaItem());
+        result.add(new GitBranchItem());
+        result.add(new MemoryItem());
+        result.add(new FileSystemSyncItem());
+        result.add(new PowerSaveItem());
         return result;
     }
 

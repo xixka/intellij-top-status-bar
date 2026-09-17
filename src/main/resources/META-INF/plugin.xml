@@ -2,8 +2,28 @@
     <id>com.xixka.topstatusbar</id>
     <name>Top Status Bar</name>
     <vendor>xixka</vendor>
-    <description><![CDATA[A compact, New UI-style status bar rendered as a single custom toolbar component. It can be added to the Main Toolbar via Settings | Appearance and Behavior | Menus and Toolbars.]]></description>
+    <description><![CDATA[A compact, New UI-style status bar rendered as a single custom toolbar component.<br/>
+    Add the "Top Status Bar" action group to the Main Toolbar via Settings &#8594; Appearance &amp; Behavior &#8594; Menus and Toolbars
+    to show editor, project, VCS and runtime status next to the search icon.]]></description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="com.xixka.topstatusbar.TopStatusBarManager"/>
+        <notificationGroup id="TopStatusBar" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <group id="TopStatusBar"
+               class="com.xixka.topstatusbar.TopStatusBarGroup"
+               popup="false"
+               text="Top Status Bar"
+               description="Compact status bar for the Main Toolbar (New UI)">
+            <action id="TopStatusBar.Widget"
+                    class="com.xixka.topstatusbar.TopStatusBarAction"
+                    text="Top Status Bar"
+                    description="Compact status bar component"/>
+        </group>
+    </actions>
 </idea-plugin>

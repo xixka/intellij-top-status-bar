@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
 import com.xixka.topstatusbar.model.StatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,6 +111,13 @@ public final class StatusCell extends JComponent {
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         try {
+            // Apply the platform-standard rendering hints (anti-aliasing,
+            // text AA mode matching the IDE "Antialiasing" UISettings), so
+            // the custom-painted text stays as crisp as the rest of the IDE
+            // on HiDPI screens. Without this, drawString falls back to the
+            // Java2D gray-AA default, which looks blurry next to native
+            // LCD-subpixel-rendered toolbar text at 125%-200% scaling.
+            UIUtil.setupAntialiasing(g2);
             if (hover) {
                 float arc = JBUI.scale(6f);
                 g2.setColor(pressed ? PRESSED_BACKGROUND : HOVER_BACKGROUND);

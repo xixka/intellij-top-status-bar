@@ -29,6 +29,11 @@ public final class StatusCell extends JComponent {
     private static final JBColor INFO_FOREGROUND = new JBColor(0x2C6FD1, 0x7CA9F5);
     private static final JBColor FALLBACK_FOREGROUND = new JBColor(0x22272E, 0xB6BAC0);
 
+    /** Horizontal padding of a cell (unscaled; applied via {@link JBUI#scale}). */
+    private static final int H_PADDING = 3;
+    /** Gap between the icon and the text (unscaled; applied via {@link JBUI#scale}). */
+    private static final int ICON_TEXT_GAP = 3;
+
     private final StatusItem item;
     @Nullable
     private final Project project;
@@ -91,8 +96,8 @@ public final class StatusCell extends JComponent {
         FontMetrics metrics = getFontMetrics(getFont());
         Icon icon = item.getIcon();
         String text = item.getText();
-        int gap = JBUI.scale(4);
-        int padding = JBUI.scale(8);
+        int gap = JBUI.scale(ICON_TEXT_GAP);
+        int padding = JBUI.scale(H_PADDING);
         int width = padding * 2;
         if (icon != null) {
             width += icon.getIconWidth();
@@ -128,8 +133,8 @@ public final class StatusCell extends JComponent {
             Icon icon = item.getIcon();
             String text = item.getText();
             FontMetrics metrics = g2.getFontMetrics();
-            int padding = JBUI.scale(8);
-            int gap = JBUI.scale(4);
+            int padding = JBUI.scale(H_PADDING);
+            int gap = JBUI.scale(ICON_TEXT_GAP);
             int x = padding;
             if (icon != null) {
                 int iconY = Math.max(0, (getHeight() - icon.getIconHeight()) / 2);

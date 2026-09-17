@@ -25,10 +25,12 @@ public interface StatusItem {
     int getPriority();
 
     /**
-     * Optional ID of the built-in IDE status bar widget this item mirrors.
-     * When set, the item is hidden while the corresponding widget is turned
-     * off in the IDE status bar (context menu or Settings), so the top bar
-     * stays in sync with the native widget toggles.
+     * Optional ID of a status bar widget that controls this item: while the
+     * widget is absent from the IDE status bar, the item is hidden from the
+     * top bar. This is either a built-in IDE widget (editor position,
+     * encoding, Git branch, …) or one of this plugin's own sync widget
+     * factories (see {@code com.xixka.topstatusbar.widget}), which expose the
+     * plugin-specific items in the native "Status Bar Widgets" toggle menu.
      */
     default @Nullable String getPlatformWidgetId() {
         return null;

@@ -26,8 +26,8 @@
                description="Compact status bar for the Main Toolbar (New UI)">
             <action id="TopStatusBar.Widget"
                     class="com.xixka.topstatusbar.TopStatusBarAction"
-                    text="Top Status Bar"
-                    description="Compact status bar component"/>
+                    text="Top Status Bar Widget"
+                    description="The status bar component itself (usually added via the Top Status Bar group)"/>
         </group>
     </actions>
 </idea-plugin>

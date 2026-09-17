@@ -24,7 +24,7 @@ import javax.swing.*;
 public final class TopStatusBarAction extends AnAction implements CustomComponentAction, DumbAware {
 
     public TopStatusBarAction() {
-        super("Top Status Bar", "Compact status bar for the Main Toolbar", null);
+        super("Top Status Bar Widget", "The status bar component itself (usually added via the Top Status Bar group)", null);
     }
 
     @Override

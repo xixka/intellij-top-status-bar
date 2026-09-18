@@ -1,10 +1,12 @@
 package com.xixka.topstatusbar.items;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import git4idea.GitBranch;
@@ -31,9 +33,19 @@ import java.util.List;
  * .getRepositoryForFile} may trigger a synchronous repository-mapping
  * update, which the platform forbids on the EDT ("Do not call synchronous
  * repository update in EDT"). The active file is captured on the EDT, the
- * repository and branch are resolved under a read action on a pooled thread,
- * and the presentation is applied back on the EDT. A generation counter
- * drops stale results when updates pile up.
+ * repository and branch are resolved via a {@link ReadAction#nonBlocking}
+ * on a pooled thread, and the presentation is applied back on the EDT. A
+ * generation counter drops stale results when updates pile up.
+ * <p>
+ * Threading note (thread dump 2026-09-18): the resolution MUST use a
+ * non-blocking read action. A plain read action keeps its read permit while
+ * waiting for the VCS repository-collection lock, and the collection update
+ * in turn waits for a read permit while a write is pending — together with
+ * a blocking write action on the EDT that forms a hard deadlock cycle and
+ * freezes the IDE. A non-blocking read action yields its permit when a
+ * write action is requested, which breaks the cycle. The lookup also uses
+ * the quick variant ({@code getRepositoryForFileQuick}) that never triggers
+ * the synchronous collection update itself.
  */
 public final class GitBranchItem extends AbstractStatusItem {
 
@@ -95,18 +107,19 @@ public final class GitBranchItem extends AbstractStatusItem {
         // snapshot lets a late background result be dropped silently.
         VirtualFile file = EditorContext.virtualFile(EditorContext.selectedEditor(project));
         int generation = ++updateGeneration;
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (project.isDisposed()) {
-                return;
-            }
-            Snapshot snapshot = ReadAction.compute(() -> computeSnapshot(project, file));
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (project.isDisposed() || generation != updateGeneration) {
-                    return;
-                }
-                applySnapshot(snapshot);
-            });
-        });
+        // Block lambda with an explicit return: resolves the Runnable-vs-
+        // Callable overload ambiguity of ReadAction.nonBlocking.
+        ReadAction.nonBlocking(() -> {
+            return computeSnapshot(project, file);
+        })
+                .expireWith(project)
+                .finishOnUiThread(ModalityState.anyModalityState(), snapshot -> {
+                    if (generation != updateGeneration) {
+                        return;
+                    }
+                    applySnapshot(snapshot);
+                })
+                .submit(AppExecutorUtil.getAppExecutorService());
     }
 
     @Nullable
@@ -151,32 +164,30 @@ public final class GitBranchItem extends AbstractStatusItem {
         if (effective == null) {
             return;
         }
-        // Same async pattern as update(): resolve the repository off the EDT,
-        // then show the same popup as the native git branch widget on the EDT.
+        // Same async pattern as update(): resolve the repository off the EDT
+        // with a non-blocking read action, then show the same popup as the
+        // native git branch widget on the EDT.
         VirtualFile file = EditorContext.virtualFile(EditorContext.selectedEditor(effective));
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (effective.isDisposed()) {
-                return;
-            }
-            GitRepository repository = ReadAction.compute(() ->
-                    currentRepository(GitRepositoryManager.getInstance(effective), file));
-            if (repository == null) {
-                return;
-            }
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (effective.isDisposed()) {
-                    return;
-                }
-                GitBranchesTreePopup.create(effective, repository)
-                        .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
-            });
-        });
+        ReadAction.nonBlocking(() -> {
+            return currentRepository(GitRepositoryManager.getInstance(effective), file);
+        })
+                .expireWith(effective)
+                .finishOnUiThread(ModalityState.anyModalityState(), repository -> {
+                    if (repository == null) {
+                        return;
+                    }
+                    GitBranchesTreePopup.create(effective, repository)
+                            .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
+                })
+                .submit(AppExecutorUtil.getAppExecutorService());
     }
 
     @Nullable
     private static GitRepository currentRepository(@NotNull GitRepositoryManager manager, @Nullable VirtualFile file) {
         if (file != null) {
-            GitRepository repository = manager.getRepositoryForFile(file);
+            // Quick variant: never triggers the synchronous repository-mapping
+            // update, so it cannot park for a long collection update.
+            GitRepository repository = manager.getRepositoryForFileQuick(file);
             if (repository != null) {
                 return repository;
             }

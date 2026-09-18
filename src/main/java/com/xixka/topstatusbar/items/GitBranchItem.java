@@ -117,7 +117,7 @@ public final class GitBranchItem extends AbstractStatusItem {
             return computeSnapshot(project, file);
         })
                 .expireWith(project)
-                .finishOnUiThread(ModalityState.anyModalityState(), snapshot -> {
+                .finishOnUiThread(ModalityState.defaultModalityState(), snapshot -> {
                     if (generation != updateGeneration) {
                         return;
                     }
@@ -176,7 +176,7 @@ public final class GitBranchItem extends AbstractStatusItem {
             return currentRepository(GitRepositoryManager.getInstance(effective), file);
         })
                 .expireWith(effective)
-                .finishOnUiThread(ModalityState.anyModalityState(), repository -> {
+                .finishOnUiThread(ModalityState.defaultModalityState(), repository -> {
                     if (repository == null) {
                         return;
                     }

@@ -1,6 +1,7 @@
 package com.xixka.topstatusbar.items;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.application.WriteIntentReadAction;
 import com.intellij.openapi.editor.Editor;
@@ -67,13 +68,22 @@ public final class ReadOnlyItem extends CurrentFileItem {
         // The (Runnable) cast disambiguates run(Runnable) vs
         // run(ThrowableRunnable), both accept a void lambda.
         WriteIntentReadAction.run((Runnable) () -> FileDocumentManager.getInstance().saveAllDocuments());
-        try {
-            WriteAction.run((ThrowableRunnable<IOException>) () ->
-                    ReadOnlyAttributeUtil.setReadOnlyAttribute(file, file.isWritable()));
-        } catch (IOException e) {
-            Messages.showErrorDialog(project, e.getMessage(), "无法切换只读属性");
-        }
-        update();
+        // The attribute flip must NOT run as a blocking write action on the
+        // EDT (thread dump 2026-09-18): while the write lock is contended
+        // (e.g. a VCS repository scan in progress), a blocking EDT write
+        // froze the whole IDE. WriteAction.run is legal from any thread and
+        // the disk flip needs no UI access, so run it on a pooled thread.
+        boolean writable = file.isWritable();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                WriteAction.run((ThrowableRunnable<IOException>) () ->
+                        ReadOnlyAttributeUtil.setReadOnlyAttribute(file, writable));
+            } catch (IOException e) {
+                ApplicationManager.getApplication().invokeLater(() ->
+                        Messages.showErrorDialog(project, e.getMessage(), "无法切换只读属性"));
+            }
+            ApplicationManager.getApplication().invokeLater(this::update);
+        });
     }
 }
 

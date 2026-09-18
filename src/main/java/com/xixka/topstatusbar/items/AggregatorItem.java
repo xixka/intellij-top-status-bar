@@ -27,13 +27,6 @@ public final class AggregatorItem extends AbstractStatusItem {
     }
 
     @Override
-    public @Nullable String getPlatformWidgetId() {
-        // Mirrors this plugin's own widget factory (see widget/), so the item
-        // follows its toggle in the native "Status Bar Widgets" menu.
-        return "aggregator";
-    }
-
-    @Override
     protected void install() {
         updateSummary(aggregated);
     }

@@ -115,16 +115,6 @@ public final class TopStatusBarManager implements Disposable {
         listeners.remove(listener);
     }
 
-    /**
-     * Re-checks the native widget toggles immediately. Called by the sync
-     * widgets ({@code com.xixka.topstatusbar.widget.TopBarSyncWidget}) when
-     * they are added to or removed from the status bar, so toggling an entry
-     * in the native "Status Bar Widgets" menu takes effect right away instead
-     * of waiting for the periodic refresh.
-     */
-    public void syncNow() {
-        ApplicationManager.getApplication().invokeLater(this::syncPlatformWidgets);
-    }
 
     public void reload() {
         for (StatusItem item : items) {

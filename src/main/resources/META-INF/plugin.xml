@@ -23,18 +23,6 @@
              StatusBar.getWidget(id) API and hides the item while the toggle
              is off. Items mirroring built-in widgets (editor position,
              encoding, Git branch, ...) already follow their native toggles. -->
-        <statusBarWidgetFactory id="statusText"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$StatusText"/>
-        <statusBarWidgetFactory id="fileSystemSync"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$FileSystemSync"/>
-        <statusBarWidgetFactory id="codeBuddy"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$CodeBuddy"/>
-        <statusBarWidgetFactory id="aggregator"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$Aggregator"/>
-        <statusBarWidgetFactory id="networkLocation"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$NetworkLocation"/>
-        <statusBarWidgetFactory id="deployServer"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$DeployServer"/>
     </extensions>
 
     <actions>

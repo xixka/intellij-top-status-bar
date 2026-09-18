@@ -25,12 +25,11 @@ public interface StatusItem {
     int getPriority();
 
     /**
-     * Optional ID of a status bar widget that controls this item: while the
-     * widget is absent from the IDE status bar, the item is hidden from the
-     * top bar. This is either a built-in IDE widget (editor position,
-     * encoding, Git branch, …) or one of this plugin's own sync widget
-     * factories (see {@code com.xixka.topstatusbar.widget}), which expose the
-     * plugin-specific items in the native "Status Bar Widgets" toggle menu.
+     * Optional ID of a built-in IDE status bar widget that controls this
+     * item: while the widget is absent from the IDE status bar (toggled off
+     * in the native "Status Bar Widgets" menu), the item is hidden from the
+     * top bar. Only native widget IDs belong here — plugin-specific items
+     * are governed solely by the plugin's own settings page.
      */
     default @Nullable String getPlatformWidgetId() {
         return null;

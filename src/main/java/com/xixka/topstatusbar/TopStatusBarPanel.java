@@ -172,14 +172,14 @@ final class TopStatusBarPanel extends JComponent {
     }
 
     private void applyVisibility() {
-        TopStatusBarManager currentManager = manager;
+        // Visibility is governed solely by the item itself (its own display
+        // conditions) and the plugin settings page toggles (which decide
+        // during reload whether the item exists at all). The old extra
+        // suppression by native status-bar widget presence was removed:
+        // on 2026.x the bottom bar no longer hosts many of those widgets,
+        // which hid items the user had explicitly enabled.
         for (StatusCell cell : cells) {
-            boolean visible = cell.item().isVisible();
-            if (visible && currentManager != null
-                    && currentManager.isSuppressedByPlatformWidget(cell.item())) {
-                visible = false;
-            }
-            cell.setVisible(visible);
+            cell.setVisible(cell.item().isVisible());
         }
         int available = getWidth();
         if (available <= 0) {

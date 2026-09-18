@@ -37,13 +37,13 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - **EDT 禁止阻塞式 WriteAction.run 做磁盘/VFS 慢操作**（同一死锁的第三环）：写锁被争用时 SuvorovProgress 直接显示"无响应"。写动作跨线程合法： pooled 线程 WriteAction.run + invokeLater 回 EDT（见 `items/ReadOnlyItem.java`）
 - 涉及 VCS/仓库映射、VFS 扫描类 API（getAllVersionedRoots、checkAndUpdateRepositoryCollection 等）一律不放 EDT
 - EDT 的 Swing 回调（mouseClicked 等）不持有 write-intent 锁：`FileDocumentManager.saveAllDocuments` 等模型访问必须包 `WriteIntentReadAction.run`（且必须在 EDT，平台 assertEventDispatchThread；见 `items/ReadOnlyItem.java`）；注意 `run` 有 Runnable/ThrowableRunnable 两个重载，lambda 必须显式 `(Runnable)` 转型，否则编译歧义（run 21 编译事故）；`ReadAction.nonBlocking` 同理有 Runnable/Callable 重载，块式 lambda 显式 return 消歧
-- **2026.x 平台微件前端化**：Git 分支已迁移为主工具栏动作 `main.toolbar.git.Branches`（GitToolbarWidgetAction），旧底栏 `git` StatusBarWidgetFactory 只剩 remote 后端——`StatusBar.getWidget("git")` 恒为 null，镜像它会把 Git 分支项永久隐藏（2026-09-18 用户反馈"打开了不显示"根因）；其余 8 个旧微件（Position/Encoding/LineSeparator/ReadOnlyAttribute/CodeStyleStatusBarWidget/InsertOverwrite/Memory/PowerSaveMode）在 master 仍走底栏，getWidget 跟随正常
+- **2026.x 平台微件前端化**：Git 分支已迁移为主工具栏动作 `main.toolbar.git.Branches`（GitToolbarWidgetAction），多数原生微件不再挂在底栏（PowerSaveMode/Encoding 等 id 未变但底栏常无实例）——`StatusBar.getWidget(id)` 的返回值不再可靠反映用户意图，这正是显示抑制链路被移除的平台背景（详见硬约束第 3 条）
 
 ## 硬约束
 
 - **每次发布新版本，版本号必须加 1**：dev 构建由 CI 自动注入 `0.1.<run_number>`；正式构建必须 `-PbuildVersion=x.y.z` 且大于上一正式版。版本号重复会导致 IDE 视为"已安装"不升级、旧构建残留，表现为修复无效/幽灵条目（2026-09-17 双条目事故根因）
 - **已发布的动作 id、状态项 id 与显示文本永不改动/删除**：`TopStatusBar.Widget`（工具栏自定义按 id 持久化 ActionUrl）、设置页 `topStatusBar`、各状态项 id（statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/deployServer…，设置页按 id 持久化开关）。2026-09-18 按用户要求移除了六个微件工厂注册；ide.general.xml 中遗留的旧微件开关状态会被平台忽略，无害
-- **顶栏只读取原生「状态栏微件」菜单，绝不向其注册插件条目**：原生对应项（行列、编码等）通过 `StatusBar.getWidget(id)` 动态跟随原生开关显隐；Git 分支项例外（2026.x 旧 `git` 微件已不存在，见已知坑，仅随插件设置页）；插件自有项的开关只在插件设置页（2026-09-18 用户明确；此前注册的条目还因用户 IDE 内加载了两份插件副本而在原生菜单中成双出现）
+- **顶栏显示的唯一真源是插件设置页**（Settings → Appearance & Behavior → Top Status Bar 的逐项复选框，2026-09-18 用户最终确认）：勾选即显示、取消即隐藏，勾选的项绝不因平台底栏微件状态被隐藏。历史教训：曾实现"跟随原生状态栏微件菜单"（StatusBar.getWidget 判断），2026.x 底栏不再承载多数原生微件 → 用户勾选的项被永久隐藏（"要显示的全都不显示了"事故），整条抑制链路（isSuppressedByPlatformWidget/syncPlatformWidgets/getPlatformWidgetId 判定）已从渲染管线移除；StatusItem.getPlatformWidgetId 仅作二进制兼容保留，返回值一律忽略。也绝不向原生菜单注册插件条目（2026-09-18 用户明确；曾因用户 IDE 加载两份插件副本而成双出现）
 - 本地不执行任何 gradle 构建（含 runIde）：编译验证一律以 CI 结果为准，沙盒验证留给人工
 - 不修改 IDEA 内部 UI：不创建第二行 Toolbar、不反射内部实现、不碰 MainFrame；只用官方 Action System 公共 API
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权）；每完成一个改动立即 commit 并 push，提交身份固定为 `xaxka`

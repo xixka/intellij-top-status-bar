@@ -25,11 +25,13 @@ public interface StatusItem {
     int getPriority();
 
     /**
-     * Optional ID of a built-in IDE status bar widget that controls this
-     * item: while the widget is absent from the IDE status bar (toggled off
-     * in the native "Status Bar Widgets" menu), the item is hidden from the
-     * top bar. Only native widget IDs belong here — plugin-specific items
-     * are governed solely by the plugin's own settings page.
+     * Historical mapping to a built-in IDE status bar widget. No longer used
+     * for visibility control: the plugin settings page is the single source
+     * of truth for whether an item shows (2026-09-18, user decision). The
+     * bottom-bar widget lookup broke on 2026.x where many native widgets no
+     * longer live on the bottom status bar, which hid items the user had
+     * explicitly enabled. Kept for binary compatibility of implementors;
+     * returns are ignored.
      */
     default @Nullable String getPlatformWidgetId() {
         return null;

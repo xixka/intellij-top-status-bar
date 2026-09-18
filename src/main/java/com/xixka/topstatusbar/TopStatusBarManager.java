@@ -3,8 +3,6 @@ package com.xixka.topstatusbar;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.StatusBar;
-import com.intellij.openapi.wm.WindowManager;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.xixka.topstatusbar.items.CaretPositionItem;
 import com.xixka.topstatusbar.items.CodeBuddyItem;
@@ -29,9 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +44,6 @@ public final class TopStatusBarManager implements Disposable {
     private final Project project;
     private final List<StatusItem> items = new CopyOnWriteArrayList<>();
     private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
-    private final Set<String> suppressedWidgetIds = new HashSet<>();
     private Future<?> periodicRefresh;
 
     public static TopStatusBarManager getInstance(@NotNull Project project) {
@@ -65,46 +60,6 @@ public final class TopStatusBarManager implements Disposable {
 
     public @NotNull List<StatusItem> getItems() {
         return Collections.unmodifiableList(items);
-    }
-
-    /**
-     * Mirrors the native status bar widget toggles: an item mapped to a
-     * built-in widget (see {@link StatusItem#getPlatformWidgetId()}) is
-     * suppressed while that widget is turned off in the IDE status bar.
-     * Must be called on the EDT.
-     */
-    public boolean isSuppressedByPlatformWidget(@NotNull StatusItem item) {
-        String widgetId = item.getPlatformWidgetId();
-        if (widgetId == null || project.isDisposed()) {
-            return false;
-        }
-        StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
-        return statusBar != null && statusBar.getWidget(widgetId) == null;
-    }
-
-    /**
-     * Detects changes of the native widget toggles on the periodic refresh
-     * and fires a change event so the top bar re-syncs its cells.
-     */
-    private void syncPlatformWidgets() {
-        if (project.isDisposed() || items.isEmpty()) {
-            return;
-        }
-        StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
-        Set<String> suppressed = new HashSet<>();
-        if (statusBar != null) {
-            for (StatusItem item : items) {
-                String widgetId = item.getPlatformWidgetId();
-                if (widgetId != null && statusBar.getWidget(widgetId) == null) {
-                    suppressed.add(widgetId);
-                }
-            }
-        }
-        if (!suppressed.equals(suppressedWidgetIds)) {
-            suppressedWidgetIds.clear();
-            suppressedWidgetIds.addAll(suppressed);
-            fireChanged();
-        }
     }
 
     public void addChangeListener(@NotNull Runnable listener) {
@@ -174,7 +129,6 @@ public final class TopStatusBarManager implements Disposable {
                 } catch (Exception ignored) {
                 }
             }
-            syncPlatformWidgets();
         });
     }
 
@@ -187,13 +141,7 @@ public final class TopStatusBarManager implements Disposable {
             }
         }
         if (aggregator != null) {
-            List<StatusItem> unsuppressed = new ArrayList<>();
-            for (StatusItem item : items) {
-                if (!isSuppressedByPlatformWidget(item)) {
-                    unsuppressed.add(item);
-                }
-            }
-            aggregator.updateSummary(unsuppressed);
+            aggregator.updateSummary(new ArrayList<>(items));
         }
         for (Runnable listener : listeners) {
             listener.run();

@@ -30,6 +30,11 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - 行为验证（runIde 沙盒把 Top Status Bar 拖入 Main Toolbar、状态栏微件菜单开关即时同步顶栏、单元格点击弹出菜单与只读锁定切换）由人工执行，结论写入提交说明
 - 每个提交独立可编译：提交即推送，CI 即时反馈
 
+## 平台已知坑（对照 intellij-community 241.14494 源码核实）
+
+- EDT 上调用 `GitRepositoryManager.getRepositoryForFile` 会触发平台断言 "Do not call synchronous repository update in EDT"（VcsRepositoryManager），弹 IDE 内部错误；必须在后台线程 ReadAction 中解析仓库，再回 EDT 应用（参考 `items/GitBranchItem.java` 的异步模式）
+- 涉及 VCS/仓库映射、VFS 扫描类 API（getAllVersionedRoots、checkAndUpdateRepositoryCollection 等）一律不放 EDT
+
 ## 硬约束
 
 - **每次发布新版本，版本号必须加 1**：dev 构建由 CI 自动注入 `0.1.<run_number>`；正式构建必须 `-PbuildVersion=x.y.z` 且大于上一正式版。版本号重复会导致 IDE 视为"已安装"不升级、旧构建残留，表现为修复无效/幽灵条目（2026-09-17 双条目事故根因）

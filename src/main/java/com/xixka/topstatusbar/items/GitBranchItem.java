@@ -59,10 +59,14 @@ public final class GitBranchItem extends AbstractStatusItem {
         super("gitBranch", 90);
     }
 
-    @Override
-    public @Nullable String getPlatformWidgetId() {
-        return "git";
-    }
+    // No getPlatformWidgetId override on purpose: the old bottom-bar git
+    // widget ("git" StatusBarWidgetFactory) is gone in 2026.x — the branch
+    // widget lives in the Main Toolbar as the frontend action
+    // "main.toolbar.git.Branches" (GitToolbarWidgetAction), so
+    // StatusBar.getWidget("git") always returns null there and mirroring it
+    // would permanently hide this item. Even on 241 New UI the old widget is
+    // disabled by default when the main toolbar is shown. The git branch
+    // item therefore follows only the plugin's own settings.
 
     @Override
     protected void install() {

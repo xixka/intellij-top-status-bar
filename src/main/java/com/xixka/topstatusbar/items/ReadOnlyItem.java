@@ -2,6 +2,7 @@ package com.xixka.topstatusbar.items;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.WriteAction;
+import com.intellij.openapi.application.WriteIntentReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
@@ -60,7 +61,10 @@ public final class ReadOnlyItem extends CurrentFileItem {
         }
         // Same behavior as the native read-only attribute widget: save
         // everything, then flip the file read-only attribute on disk.
-        FileDocumentManager.getInstance().saveAllDocuments();
+        // mouseClicked is a plain Swing callback without the write-intent
+        // lock (unlike IDE action updates), so saving documents must be
+        // wrapped in WriteIntentReadAction — platform threading assert.
+        WriteIntentReadAction.run(() -> FileDocumentManager.getInstance().saveAllDocuments());
         try {
             WriteAction.run((ThrowableRunnable<IOException>) () ->
                     ReadOnlyAttributeUtil.setReadOnlyAttribute(file, file.isWritable()));

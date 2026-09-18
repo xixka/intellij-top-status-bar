@@ -64,7 +64,9 @@ public final class ReadOnlyItem extends CurrentFileItem {
         // mouseClicked is a plain Swing callback without the write-intent
         // lock (unlike IDE action updates), so saving documents must be
         // wrapped in WriteIntentReadAction — platform threading assert.
-        WriteIntentReadAction.run(() -> FileDocumentManager.getInstance().saveAllDocuments());
+        // The (Runnable) cast disambiguates run(Runnable) vs
+        // run(ThrowableRunnable), both accept a void lambda.
+        WriteIntentReadAction.run((Runnable) () -> FileDocumentManager.getInstance().saveAllDocuments());
         try {
             WriteAction.run((ThrowableRunnable<IOException>) () ->
                     ReadOnlyAttributeUtil.setReadOnlyAttribute(file, file.isWritable()));

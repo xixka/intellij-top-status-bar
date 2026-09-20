@@ -9,6 +9,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import git4idea.GitBranch;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
@@ -187,10 +193,43 @@ public final class GitBranchItem extends AbstractStatusItem {
                         DebugLog.warn("gitBranch onClick: 未解析到仓库，不弹分支面板");
                         return;
                     }
-                    GitBranchesTreePopup.create(effective, repository)
-                            .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
+                    // 2024.x–2025.x（编译目标）：直连 git4idea 分支树弹窗 API
+                    try {
+                        GitBranchesTreePopup.create(effective, repository)
+                                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
+                        return;
+                    } catch (LinkageError | RuntimeException e) {
+                        // 2026.x：git4idea 拆分为 content 模块后该类已迁移
+                        // （idea.log 2026-09-20 实测 ClassNotFoundException:
+                        // git4idea.ui.branch.popup.GitBranchesTreePopup），
+                        // 编译期无法暴露，只能在运行期降级——改走平台注册动作
+                        DebugLog.warn("gitBranch onClick: 直连分支面板 API 失败（" + e
+                                + "），降级执行平台 Git.Branches 动作", e);
+                    }
+                    openBranchesViaPlatformAction(effective, source);
                 })
                 .submit(AppExecutorUtil.getAppExecutorService());
+    }
+
+    /**
+     * 跨版本兜底：执行平台注册的 {@code Git.Branches} 动作。该 id 在
+     * 2024.1（git4idea.xml）与 2026.x（intellij.vcs.git.backend.xml）中均由
+     * {@code git4idea.ui.branch.GitBranchesAction} 注册，实现内部自行解析
+     * 仓库并弹出分支面板——动作系统是官方保证的稳定层，不依赖任何具体类。
+     */
+    private static void openBranchesViaPlatformAction(@NotNull Project project, @NotNull JComponent source) {
+        AnAction branchesAction = ActionManager.getInstance().getAction("Git.Branches");
+        if (branchesAction == null) {
+            DebugLog.warn("gitBranch onClick: 平台未注册 Git.Branches 动作，无法弹出分支面板");
+            NotificationGroupManager.getInstance().getNotificationGroup("TopStatusBar")
+                    .createNotification("Top Status Bar",
+                            "当前 IDE 的 Git 插件未提供分支面板 API，请通过 Git 菜单切换分支。",
+                            NotificationType.WARNING)
+                    .notify(project);
+            return;
+        }
+        ActionUtil.invokeAction(branchesAction, source, ActionPlaces.MAIN_TOOLBAR, null, null);
+        DebugLog.log("gitBranch onClick: 已通过平台动作 Git.Branches 弹出分支面板");
     }
 
     @Nullable

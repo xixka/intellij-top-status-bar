@@ -3,6 +3,11 @@ package com.xixka.topstatusbar;
 import com.intellij.openapi.Disposable;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ex.AnActionListener;
+import com.intellij.openapi.actionSystem.ex.AnActionResult;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.StatusBarWidgetFactory;
@@ -108,6 +113,7 @@ public final class TopStatusBarManager implements Disposable {
                 + ", 周期刷新间隔=" + REFRESH_INTERVAL_SECONDS + "s");
         detectStaleWidgetFactories();
         migrateLegacyOwnItemToggles();
+        installNativeToggleListener();
         reload();
         periodicRefresh = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::scheduledRefresh,
@@ -353,6 +359,57 @@ public final class TopStatusBarManager implements Disposable {
                 DebugLog.warn("notifyStaleWidgetFactories: 通知发送失败（不影响功能）", t);
             }
         });
+    }
+
+    /**
+     * Instant sync with the native "Status Bar Widgets" menu; the 5s
+     * periodic poll ({@link #syncToNativeMenu}) remains the fallback.
+     * <p>
+     * The platform registers one toggle action per configurable widget
+     * factory under {@code StatusBarWidgets.Toggle.<factoryId>}
+     * (platform StatusBarActionManager) — those fire for the View menu and
+     * the status-bar right-click menu alike (both are the same action group
+     * on 233–261, verified against platform sources). The right-click
+     * "hide this widget" action is an unregistered internal instance and is
+     * matched by simple class name instead.
+     * <p>
+     * Diagnostics for the 2026.x frontend store: when such an action fires
+     * but the classic-store decision snapshot does NOT change, the toggle
+     * landed in the separate frontend store this plugin cannot read — the
+     * log line is the evidence to confirm that scenario on a user machine.
+     */
+    private void installNativeToggleListener() {
+        try {
+            ActionManager.getInstance().addAnActionListener(new AnActionListener() {
+                @Override
+                public void afterActionPerformed(@NotNull AnAction action, @NotNull AnActionEvent event,
+                                                 @NotNull AnActionResult result) {
+                    if (project.isDisposed()) {
+                        return;
+                    }
+                    String actionId = ActionManager.getInstance().getId(action);
+                    boolean nativeToggle = actionId != null
+                            && actionId.startsWith("StatusBarWidgets.Toggle.");
+                    boolean hideCurrent = actionId == null
+                            && "HideCurrentWidgetAction".equals(action.getClass().getSimpleName());
+                    if (!nativeToggle && !hideCurrent) {
+                        return;
+                    }
+                    // ToggleAction.actionPerformed 已同步写入经典存储，此刻读取即最新值
+                    String before = lastDecisionSnapshot;
+                    syncToNativeMenu();
+                    if (lastDecisionSnapshot.equals(before)) {
+                        DebugLog.log("原生微件开关动作未改变经典存储决策(actionId=" + actionId
+                                + ", class=" + action.getClass().getSimpleName()
+                                + ") → 该条目勾选落入 2026.x 前端独立存储（插件不可读），或开关值未变化");
+                    } else {
+                        DebugLog.log("原生微件开关动作即时同步(actionId=" + actionId + ")");
+                    }
+                }
+            }, this);
+        } catch (Throwable t) {
+            DebugLog.warn("installNativeToggleListener: 注册失败（退化为 5s 轮询）", t);
+        }
     }
 
     /**

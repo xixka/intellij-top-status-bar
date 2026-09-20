@@ -18,11 +18,26 @@
         <notificationGroup id="TopStatusBar" displayType="BALLOON"/>
         <!-- Plugin-specific items are exposed as native "Status Bar Widgets"
              toggles (right-click the bottom status bar or View | Appearance |
-             Status Bar Widgets). The factories create invisible zero-size
-             widgets; the top bar reads their presence via the public
-             StatusBar.getWidget(id) API and hides the item while the toggle
-             is off. Items mirroring built-in widgets (editor position,
-             encoding, Git branch, ...) already follow their native toggles. -->
+             Status Bar Widgets) so that the native menu governs the whole top
+             bar (2026-09-20: show exactly what the system settings select).
+             The factories create invisible zero-size widgets. The toggle
+             state itself is read from the persisted StatusBarWidgetSettings
+             (see TopStatusBarManager.isDisplayEnabled), never from widget
+             presence — 2026.x no longer hosts many widgets on the bottom
+             bar. The sync widget only provides instant notifications on
+             platforms that still host legacy custom widgets. -->
+        <statusBarWidgetFactory id="statusText"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$StatusText"/>
+        <statusBarWidgetFactory id="fileSystemSync"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$FileSystemSync"/>
+        <statusBarWidgetFactory id="codeBuddy"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$CodeBuddy"/>
+        <statusBarWidgetFactory id="aggregator"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$Aggregator"/>
+        <statusBarWidgetFactory id="networkLocation"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$NetworkLocation"/>
+        <statusBarWidgetFactory id="deployServer"
+                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$DeployServer"/>
     </extensions>
 
     <actions>

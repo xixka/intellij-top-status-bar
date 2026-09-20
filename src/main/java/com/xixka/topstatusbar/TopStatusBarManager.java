@@ -257,6 +257,18 @@ public final class TopStatusBarManager implements Disposable {
         }
     }
 
+    /**
+     * Immediate re-sync entry point for the plugin's sync status bar
+     * widgets: the platform adds/removes them (see
+     * {@code widget/TopBarSyncWidget}) the moment their native menu toggle
+     * flips, and the widget forwards that here. Marshals to the EDT and
+     * reuses the same decision-snapshot comparison as the periodic poll, so
+     * an unchanged state costs nothing.
+     */
+    public void syncNow() {
+        ApplicationManager.getApplication().invokeLater(this::syncToNativeMenu);
+    }
+
     private void scheduledRefresh() {
         if (project.isDisposed()) {
             return;

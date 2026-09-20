@@ -30,7 +30,10 @@ public final class TopStatusBarAction extends AnAction implements CustomComponen
     @Override
     public @NotNull JComponent createCustomComponent(@NotNull Presentation presentation,
                                                       @NotNull String place) {
-        return new TopStatusBarPanel();
+        TopStatusBarPanel panel = new TopStatusBarPanel();
+        DebugLog.log("createCustomComponent: place=" + place
+                + " → panel#" + Integer.toHexString(System.identityHashCode(panel)));
+        return panel;
     }
 
     @Override
@@ -42,6 +45,8 @@ public final class TopStatusBarAction extends AnAction implements CustomComponen
     public void actionPerformed(@NotNull AnActionEvent e) {
         // Reached only when the action is placed somewhere that renders it as a
         // plain menu item instead of the custom component.
+        DebugLog.log("actionPerformed: 被当作普通菜单项执行（说明组件被放进了菜单/非工具栏容器）"
+                + ", place=" + e.getPlace());
         Project project = e.getProject();
         NotificationGroupManager.getInstance().getNotificationGroup("TopStatusBar")
                 .createNotification("Top Status Bar",

@@ -39,17 +39,25 @@ final class TopStatusBarPanel extends JComponent {
     private TopStatusBarManager manager;
     @Nullable
     private MessageBusConnection retryConnection;
+    /** 上次自适应隐藏的项集合（调试日志用：只在集合变化时记录，避免 resize 刷屏）。 */
+    @Nullable
+    private String lastHiddenIds;
 
     TopStatusBarPanel() {
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setOpaque(false);
         setAlignmentY(CENTER_ALIGNMENT);
+        DebugLog.log("panel#" + panelId() + " 创建（等待 addNotify 绑定项目）");
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 applyVisibility();
             }
         });
+    }
+
+    private String panelId() {
+        return Integer.toHexString(System.identityHashCode(this));
     }
 
     @Override
@@ -70,9 +78,12 @@ final class TopStatusBarPanel extends JComponent {
         }
         Project resolved = resolveProject();
         if (resolved == null) {
+            DebugLog.log("panel#" + panelId() + " bind: 暂无法解析项目（无可见 frame 项目且非单项目场景）"
+                    + " → 订阅 projectOpened 等待重试");
             subscribeToProjectOpen();
             return;
         }
+        DebugLog.log("panel#" + panelId() + " bind: 绑定项目 " + resolved.getName());
         project = resolved;
         manager = TopStatusBarManager.getInstance(resolved);
         manager.addChangeListener(modelListener);
@@ -80,6 +91,7 @@ final class TopStatusBarPanel extends JComponent {
     }
 
     private void unbind() {
+        DebugLog.log("panel#" + panelId() + " unbind: 移除监听并清空 " + cells.size() + " 个单元格");
         if (manager != null) {
             manager.removeChangeListener(modelListener);
             manager = null;
@@ -100,10 +112,15 @@ final class TopStatusBarPanel extends JComponent {
         retryConnection.subscribe(ProjectManager.TOPIC, new ProjectManagerListener() {
             @Override
             public void projectOpened(@NotNull Project opened) {
+                DebugLog.log("panel#" + panelId() + " projectOpened: " + opened.getName()
+                        + " → 延迟到 EDT 重试 bind");
                 SwingUtilities.invokeLater(() -> {
                     if (manager == null && isShowing()) {
                         disposeRetryConnection();
                         bind();
+                    } else {
+                        DebugLog.log("panel#" + panelId() + " projectOpened 重试: 跳过"
+                                + (manager != null ? "（已绑定）" : "（组件当前不可见）"));
                     }
                 });
             }
@@ -123,19 +140,25 @@ final class TopStatusBarPanel extends JComponent {
         if (frame instanceof IdeFrame) {
             Project frameProject = ((IdeFrame) frame).getProject();
             if (frameProject != null && !frameProject.isDisposed()) {
+                DebugLog.log("panel#" + panelId() + " resolveProject: IdeFrame 携带项目 → " + frameProject.getName());
                 return frameProject;
             }
+            DebugLog.log("panel#" + panelId() + " resolveProject: IdeFrame 项目为 "
+                    + (frameProject == null ? "null" : "已disposed"));
         }
         Project[] open = ProjectManager.getInstance().getOpenProjects();
         if (open.length == 1 && !open[0].isDisposed()) {
+            DebugLog.log("panel#" + panelId() + " resolveProject: 回退单项目解析 → " + open[0].getName());
             return open[0];
         }
+        DebugLog.log("panel#" + panelId() + " resolveProject: 解析失败（打开项目数=" + open.length + "）");
         return null;
     }
 
     private void syncCells() {
         TopStatusBarManager currentManager = manager;
         if (currentManager == null) {
+            DebugLog.warn("panel#" + panelId() + " syncCells: manager 为空，跳过（监听器在未绑定时被触发？）");
             return;
         }
         List<StatusItem> currentItems = currentManager.getItems();
@@ -147,6 +170,10 @@ final class TopStatusBarPanel extends JComponent {
                 cells.add(cell);
                 add(cell);
             }
+            // 单元格集合已变，重置隐藏快照，让下一次 applyVisibility 输出完整状态
+            lastHiddenIds = null;
+            DebugLog.log("panel#" + panelId() + " syncCells: 重建 " + cells.size()
+                    + " 个单元格 ids=" + itemIds(currentItems));
         } else {
             for (StatusCell cell : cells) {
                 cell.refresh();
@@ -157,6 +184,14 @@ final class TopStatusBarPanel extends JComponent {
         setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
         revalidate();
         repaint();
+    }
+
+    private static String itemIds(List<StatusItem> items) {
+        List<String> ids = new ArrayList<>(items.size());
+        for (StatusItem item : items) {
+            ids.add(item.getId());
+        }
+        return ids.toString();
     }
 
     private boolean sameItems(List<StatusItem> currentItems) {
@@ -191,20 +226,53 @@ final class TopStatusBarPanel extends JComponent {
                 needed += cell.getPreferredSize().width;
             }
         }
-        if (needed <= available) {
-            return;
-        }
-        List<StatusCell> byPriority = new ArrayList<>(cells);
-        byPriority.sort(Comparator.comparingInt(cell -> cell.item().getPriority()));
-        for (StatusCell cell : byPriority) {
-            if (needed <= available) {
-                break;
+        int totalNeeded = needed;
+        if (needed > available) {
+            List<StatusCell> byPriority = new ArrayList<>(cells);
+            byPriority.sort(Comparator.comparingInt(cell -> cell.item().getPriority()));
+            for (StatusCell cell : byPriority) {
+                if (needed <= available) {
+                    break;
+                }
+                if (!cell.isVisible()) {
+                    continue;
+                }
+                needed -= cell.getPreferredSize().width;
+                cell.setVisible(false);
             }
+        }
+        // 调试日志：只在“被隐藏的项集合”变化时记录一行，窗口拖拽 resize 不会刷屏
+        String hiddenIds = hiddenIds();
+        if (!hiddenIds.equals(lastHiddenIds)) {
+            lastHiddenIds = hiddenIds;
+            if (hiddenIds.equals("[]")) {
+                DebugLog.log("panel#" + panelId() + " applyVisibility: 宽度足够（可用=" + available
+                        + "）→ 全部显示 " + visibleIds());
+            } else {
+                DebugLog.log("panel#" + panelId() + " applyVisibility: 宽度不足（可用=" + available
+                        + ", 需要=" + totalNeeded + "）→ 隐藏 " + hiddenIds
+                        + "，仍显示 " + visibleIds());
+            }
+        }
+    }
+
+    private String hiddenIds() {
+        List<String> ids = new ArrayList<>();
+        for (StatusCell cell : cells) {
             if (!cell.isVisible()) {
-                continue;
+                ids.add(cell.item().getId());
             }
-            needed -= cell.getPreferredSize().width;
-            cell.setVisible(false);
         }
+        return ids.toString();
+    }
+
+    private String visibleIds() {
+        List<String> ids = new ArrayList<>();
+        for (StatusCell cell : cells) {
+            if (cell.isVisible()) {
+                ids.add(cell.item().getId());
+            }
+        }
+        return ids.toString();
     }
 }

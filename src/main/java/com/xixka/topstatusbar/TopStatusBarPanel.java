@@ -60,6 +60,33 @@ final class TopStatusBarPanel extends JComponent {
         return Integer.toHexString(System.identityHashCode(this));
     }
 
+    /**
+     * 尺寸请求只由「项自身是否可见」决定（设置页勾选 + 项自身显示条件），
+     * 绝不随宽度挤压隐藏收缩。
+     * <p>
+     * Main Toolbar 按组件 preferred 宽度分配空间：一旦挤压隐藏单元格，
+     * 面板 preferred 随之变小，工具栏就同步缩小分配宽度，下一次变化又触发
+     * 更多挤压——反馈循环会让面板一步步塌缩到只剩一两项（idea.log 2026-09-20
+     * 实测：可用宽 283px 一路塌到 203px，17 项只剩 2 项）。宽度自适应只应
+     * 在渲染层（{@link #applyVisibility()}）生效，不参与尺寸请求。
+     */
+    @Override
+    public Dimension getPreferredSize() {
+        if (cells.isEmpty()) {
+            return super.getPreferredSize();
+        }
+        int width = 0;
+        int height = 0;
+        for (StatusCell cell : cells) {
+            if (cell.item().isVisible()) {
+                Dimension preferred = cell.getPreferredSize();
+                width += preferred.width;
+                height = Math.max(height, preferred.height);
+            }
+        }
+        return new Dimension(width, height);
+    }
+
     @Override
     public void addNotify() {
         super.addNotify();
@@ -181,6 +208,9 @@ final class TopStatusBarPanel extends JComponent {
         }
         applyVisibility();
         Dimension preferred = getPreferredSize();
+        // 最小宽度 0：工具栏空间不足时允许把面板压缩到实际可用宽度，
+        // 渲染层按优先级隐藏单元格；preferred 始终请求全量宽度（见其覆写注释）
+        setMinimumSize(new Dimension(0, preferred.height));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
         revalidate();
         repaint();
@@ -213,8 +243,13 @@ final class TopStatusBarPanel extends JComponent {
         // suppression by native status-bar widget presence was removed:
         // on 2026.x the bottom bar no longer hosts many of those widgets,
         // which hid items the user had explicitly enabled.
+        List<String> selfHidden = new ArrayList<>();
         for (StatusCell cell : cells) {
-            cell.setVisible(cell.item().isVisible());
+            boolean itemVisible = cell.item().isVisible();
+            cell.setVisible(itemVisible);
+            if (!itemVisible) {
+                selfHidden.add(cell.item().getId());
+            }
         }
         int available = getWidth();
         if (available <= 0) {
@@ -227,6 +262,7 @@ final class TopStatusBarPanel extends JComponent {
             }
         }
         int totalNeeded = needed;
+        List<String> squeezed = new ArrayList<>();
         if (needed > available) {
             List<StatusCell> byPriority = new ArrayList<>(cells);
             byPriority.sort(Comparator.comparingInt(cell -> cell.item().getPriority()));
@@ -239,31 +275,20 @@ final class TopStatusBarPanel extends JComponent {
                 }
                 needed -= cell.getPreferredSize().width;
                 cell.setVisible(false);
+                squeezed.add(cell.item().getId());
             }
         }
-        // 调试日志：只在“被隐藏的项集合”变化时记录一行，窗口拖拽 resize 不会刷屏
-        String hiddenIds = hiddenIds();
-        if (!hiddenIds.equals(lastHiddenIds)) {
-            lastHiddenIds = hiddenIds;
-            if (hiddenIds.equals("[]")) {
-                DebugLog.log("panel#" + panelId() + " applyVisibility: 宽度足够（可用=" + available
-                        + "）→ 全部显示 " + visibleIds());
-            } else {
-                DebugLog.log("panel#" + panelId() + " applyVisibility: 宽度不足（可用=" + available
-                        + ", 需要=" + totalNeeded + "）→ 隐藏 " + hiddenIds
-                        + "，仍显示 " + visibleIds());
-            }
+        // 调试日志：完整快照（自身隐藏 | 挤压隐藏 | 显示）变化时才记录一行，
+        // 窗口拖拽 resize 不会刷屏。自身隐藏与宽度挤压分列，避免误读
+        String snapshot = selfHidden + "|" + squeezed + "|" + visibleIds();
+        if (!snapshot.equals(lastHiddenIds)) {
+            lastHiddenIds = snapshot;
+            DebugLog.log("panel#" + panelId() + " applyVisibility: 可用宽=" + available
+                    + ", 全量需宽=" + totalNeeded
+                    + (selfHidden.isEmpty() ? "" : "; 项自身隐藏=" + selfHidden)
+                    + (squeezed.isEmpty() ? "; 无宽度挤压" : "; 宽度挤压隐藏=" + squeezed)
+                    + ", 显示=" + visibleIds());
         }
-    }
-
-    private String hiddenIds() {
-        List<String> ids = new ArrayList<>();
-        for (StatusCell cell : cells) {
-            if (!cell.isVisible()) {
-                ids.add(cell.item().getId());
-            }
-        }
-        return ids.toString();
     }
 
     private String visibleIds() {

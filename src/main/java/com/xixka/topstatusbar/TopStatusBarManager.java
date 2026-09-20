@@ -52,6 +52,8 @@ public final class TopStatusBarManager implements Disposable {
 
     public TopStatusBarManager(@NotNull Project project) {
         this.project = project;
+        DebugLog.log("manager 创建: project=" + project.getName()
+                + ", 周期刷新间隔=" + REFRESH_INTERVAL_SECONDS + "s");
         reload();
         periodicRefresh = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::scheduledRefresh,
@@ -60,6 +62,14 @@ public final class TopStatusBarManager implements Disposable {
 
     public @NotNull List<StatusItem> getItems() {
         return Collections.unmodifiableList(items);
+    }
+
+    private String itemIds() {
+        List<String> ids = new ArrayList<>(items.size());
+        for (StatusItem item : items) {
+            ids.add(item.getId());
+        }
+        return ids.toString();
     }
 
     public void addChangeListener(@NotNull Runnable listener) {
@@ -79,11 +89,18 @@ public final class TopStatusBarManager implements Disposable {
 
         TopStatusBarSettings settings = TopStatusBarSettings.getInstance(project);
         if (settings.isEnabled()) {
+            List<String> skipped = new ArrayList<>();
             for (StatusItem candidate : createItems()) {
                 if (settings.isItemEnabled(candidate.getId())) {
                     items.add(candidate);
+                } else {
+                    skipped.add(candidate.getId());
                 }
             }
+            DebugLog.log("reload: 装载 " + items.size() + " 项: " + itemIds()
+                    + (skipped.isEmpty() ? "" : "; 设置页关闭跳过: " + skipped));
+        } else {
+            DebugLog.log("reload: 全局开关关闭 → 不装载任何状态项");
         }
 
         Runnable notifyChanged = () -> ApplicationManager.getApplication().invokeLater(this::fireChanged);
@@ -126,7 +143,9 @@ public final class TopStatusBarManager implements Disposable {
             for (StatusItem item : items) {
                 try {
                     item.refresh();
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    // 之前被静默吞掉——这正是"出问题查不到原因"的盲区，现在完整记录
+                    DebugLog.warn("周期刷新异常: item=" + item.getId(), e);
                 }
             }
         });
@@ -150,6 +169,7 @@ public final class TopStatusBarManager implements Disposable {
 
     @Override
     public void dispose() {
+        DebugLog.log("manager dispose: project=" + project.getName());
         if (periodicRefresh != null) {
             periodicRefresh.cancel(false);
             periodicRefresh = null;

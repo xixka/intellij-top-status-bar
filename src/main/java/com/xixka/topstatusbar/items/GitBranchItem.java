@@ -16,6 +16,7 @@ import git4idea.repo.GitRepositoryManager;
 import git4idea.ui.branch.BranchIconUtil;
 import git4idea.ui.branch.popup.GitBranchesTreePopup;
 import com.intellij.ui.awt.RelativePoint;
+import com.xixka.topstatusbar.DebugLog;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +96,7 @@ public final class GitBranchItem extends AbstractStatusItem {
     private void update() {
         Project project = project();
         if (project == null) {
+            DebugLog.log("gitBranch update: project=null → 隐藏");
             setVisible(false);
             return;
         }
@@ -106,6 +108,8 @@ public final class GitBranchItem extends AbstractStatusItem {
         // snapshot lets a late background result be dropped silently.
         VirtualFile file = EditorContext.virtualFile(EditorContext.selectedEditor(project));
         int generation = ++updateGeneration;
+        DebugLog.log("gitBranch update: gen=" + generation + ", file="
+                + (file == null ? "null（无选中编辑器）" : file.getName()));
         // Block lambda with an explicit return: resolves the Runnable-vs-
         // Callable overload ambiguity of ReadAction.nonBlocking.
         ReadAction.nonBlocking(() -> {
@@ -114,6 +118,8 @@ public final class GitBranchItem extends AbstractStatusItem {
                 .expireWith(project)
                 .finishOnUiThread(ModalityState.defaultModalityState(), snapshot -> {
                     if (generation != updateGeneration) {
+                        DebugLog.log("gitBranch 丢弃过期结果: gen=" + generation
+                                + ", 当前=" + updateGeneration);
                         return;
                     }
                     applySnapshot(snapshot);
@@ -126,9 +132,14 @@ public final class GitBranchItem extends AbstractStatusItem {
         GitRepositoryManager repositoryManager = GitRepositoryManager.getInstance(project);
         GitRepository repository = currentRepository(repositoryManager, file);
         if (repository == null) {
+            DebugLog.log("gitBranch 后台解析: 未找到仓库（file="
+                    + (file == null ? "null" : file.getName())
+                    + ", 仓库数=" + repositoryManager.getRepositories().size() + "）→ snapshot=null");
             return null;
         }
         GitBranch branch = repository.getCurrentBranch();
+        DebugLog.log("gitBranch 后台解析: 仓库=" + repository.getRoot().getName()
+                + ", 分支=" + (branch == null ? "null(分离HEAD)" : branch.getName()));
         String label;
         String tooltip;
         if (branch != null) {
@@ -173,6 +184,7 @@ public final class GitBranchItem extends AbstractStatusItem {
                 .expireWith(effective)
                 .finishOnUiThread(ModalityState.defaultModalityState(), repository -> {
                     if (repository == null) {
+                        DebugLog.warn("gitBranch onClick: 未解析到仓库，不弹分支面板");
                         return;
                     }
                     GitBranchesTreePopup.create(effective, repository)

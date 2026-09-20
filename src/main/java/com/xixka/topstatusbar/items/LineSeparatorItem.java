@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.LineSeparator;
 import com.intellij.ui.awt.RelativePoint;
+import com.xixka.topstatusbar.DebugLog;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -113,7 +114,9 @@ public final class LineSeparatorItem extends CurrentFileItem {
                 }
             }
             return null;
-        } catch (java.io.IOException ignored) {
+        } catch (java.io.IOException e) {
+            DebugLog.warn("lineSeparator 读取文件字节失败: file="
+                    + (file == null ? "null" : file.getName()), e);
             return null;
         }
     }

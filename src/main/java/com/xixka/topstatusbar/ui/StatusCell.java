@@ -5,6 +5,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.util.ui.GraphicsUtil;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
+import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.model.StatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -76,6 +77,8 @@ public final class StatusCell extends JComponent {
 
             @Override
             public void mouseClicked(MouseEvent e) {
+                DebugLog.log("单元格点击: item=" + item.getId()
+                        + ", 可见项=" + item.isVisible());
                 StatusCell.this.item.onClick(project, StatusCell.this);
             }
         });

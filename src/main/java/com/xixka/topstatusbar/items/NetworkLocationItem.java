@@ -3,6 +3,7 @@ package com.xixka.topstatusbar.items;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +72,8 @@ public final class NetworkLocationItem extends AbstractStatusItem {
                     }
                 }
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            DebugLog.warn("networkLocation 网络接口检测异常", e);
         }
         String tooltip = buildTooltip(online, activeInterfaces);
         boolean onlineState = online;

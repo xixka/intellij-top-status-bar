@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
+import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.TopStatusBarManager;
 import com.xixka.topstatusbar.model.StatusItems;
 import org.jetbrains.annotations.Nls;
@@ -91,6 +92,18 @@ public final class TopStatusBarConfigurable implements Configurable {
         }
         settings.setDeployServer(text(deployServerField));
         settings.setCodeBuddyLabel(text(codeBuddyField));
+        // 调试日志：设置页是顶栏显示的唯一真源，记录用户到底改了什么
+        StringBuilder toggles = new StringBuilder();
+        for (Map.Entry<String, JBCheckBox> entry : itemCheckBoxes.entrySet()) {
+            if (toggles.length() > 0) {
+                toggles.append(", ");
+            }
+            toggles.append(entry.getKey()).append('=').append(entry.getValue().isSelected());
+        }
+        DebugLog.log("设置页 apply: enabled=" + enabledCheckBox.isSelected()
+                + ", deployServer=\"" + text(deployServerField) + "\""
+                + ", codeBuddy=\"" + text(codeBuddyField) + "\""
+                + ", 项开关=[" + toggles + "] → 触发 reload");
         TopStatusBarManager.getInstance(project).reload();
     }
 

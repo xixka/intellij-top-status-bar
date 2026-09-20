@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.ThrowableRunnable;
 import com.intellij.util.io.ReadOnlyAttributeUtil;
+import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.model.StatusSeverity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,8 +59,12 @@ public final class ReadOnlyItem extends CurrentFileItem {
         Editor editor = EditorContext.selectedEditor(project != null ? project : project());
         VirtualFile file = EditorContext.virtualFile(editor);
         if (file == null || file.getFileSystem().isReadOnly()) {
+            DebugLog.log("readOnly onClick: 无可切换文件"
+                    + (file == null ? "（file=null）" : "（只读文件系统）") + "，忽略");
             return;
         }
+        DebugLog.log("readOnly onClick: file=" + file.getName()
+                + ", 当前可写=" + file.isWritable() + "，保存后转后台切换磁盘属性");
         // Same behavior as the native read-only attribute widget: save
         // everything, then flip the file read-only attribute on disk.
         // mouseClicked is a plain Swing callback without the write-intent
@@ -78,7 +83,10 @@ public final class ReadOnlyItem extends CurrentFileItem {
             try {
                 WriteAction.run((ThrowableRunnable<IOException>) () ->
                         ReadOnlyAttributeUtil.setReadOnlyAttribute(file, writable));
+                DebugLog.log("readOnly 磁盘属性切换完成: file=" + file.getName()
+                        + ", 可写=" + writable);
             } catch (IOException e) {
+                DebugLog.warn("readOnly 磁盘属性切换失败: file=" + file.getName(), e);
                 ApplicationManager.getApplication().invokeLater(() ->
                         Messages.showErrorDialog(project, e.getMessage(), "无法切换只读属性"));
             }

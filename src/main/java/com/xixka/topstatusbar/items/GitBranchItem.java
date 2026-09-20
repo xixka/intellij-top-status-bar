@@ -66,9 +66,16 @@ public final class GitBranchItem extends AbstractStatusItem {
         super("gitBranch", 90);
     }
 
-    // No getPlatformWidgetId: item visibility is governed solely by the
-    // plugin settings page (2026-09-18 decision); the platform-widget
-    // mirroring was removed entirely from the render pipeline.
+    /**
+     * 原生「状态栏微件」菜单「Git 分支」条目的工厂 id（git4idea 注册，241/262
+     * 核实一致）。2026.x 前端化后该工厂仅剩分支/remote 后端、不再在底栏承载微件
+     * 实例，但其菜单开关与持久化状态仍在——顶栏读取菜单勾选状态而非底栏实例
+     * （2026-09-20 语义），因此映射仍然有效。
+     */
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "git";
+    }
 
     @Override
     protected void install() {

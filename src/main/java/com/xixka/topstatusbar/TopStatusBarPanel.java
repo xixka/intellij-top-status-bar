@@ -61,7 +61,8 @@ final class TopStatusBarPanel extends JComponent {
     }
 
     /**
-     * 尺寸请求只由「项自身是否可见」决定（设置页勾选 + 项自身显示条件），
+     * 尺寸请求只由「项自身是否可见」决定（原生「状态栏微件」菜单勾选 + 项自身
+     * 显示条件，由 Manager 装载时决定项的存在；无工厂映射的项回退设置页开关），
      * 绝不随宽度挤压隐藏收缩。
      * <p>
      * Main Toolbar 按组件 preferred 宽度分配空间：一旦挤压隐藏单元格，
@@ -238,11 +239,11 @@ final class TopStatusBarPanel extends JComponent {
 
     private void applyVisibility() {
         // Visibility is governed solely by the item itself (its own display
-        // conditions) and the plugin settings page toggles (which decide
-        // during reload whether the item exists at all). The old extra
-        // suppression by native status-bar widget presence was removed:
-        // on 2026.x the bottom bar no longer hosts many of those widgets,
-        // which hid items the user had explicitly enabled.
+        // conditions). Which items exist at all is decided upstream by the
+        // manager from the native "Status Bar Widgets" menu checkboxes
+        // (persisted StatusBarWidgetSettings, not bottom-bar widget
+        // instances — those are unreliable on 2026.x). No per-cell
+        // suppression here on purpose.
         List<String> selfHidden = new ArrayList<>();
         for (StatusCell cell : cells) {
             boolean itemVisible = cell.item().isVisible();

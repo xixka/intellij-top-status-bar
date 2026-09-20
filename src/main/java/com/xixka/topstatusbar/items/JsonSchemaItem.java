@@ -21,6 +21,15 @@ public final class JsonSchemaItem extends CurrentFileItem {
         super("jsonSchema", 50);
     }
 
+    /**
+     * 原生「状态栏微件」菜单「JSON 架构」条目的工厂 id（JSON 插件注册，
+     * 241/262 核实 id 一致）。顶栏读取该菜单勾选状态决定显隐。
+     */
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "JSONSchemaSelector";
+    }
+
     @Override
     protected void update() {
         Editor editor = EditorContext.selectedEditor(project());

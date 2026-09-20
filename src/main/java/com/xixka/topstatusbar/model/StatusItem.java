@@ -25,13 +25,21 @@ public interface StatusItem {
     int getPriority();
 
     /**
-     * Historical mapping to a built-in IDE status bar widget. No longer used
-     * for visibility control: the plugin settings page is the single source
-     * of truth for whether an item shows (2026-09-18, user decision). The
-     * bottom-bar widget lookup broke on 2026.x where many native widgets no
-     * longer live on the bottom status bar, which hid items the user had
-     * explicitly enabled. Kept for binary compatibility of implementors;
-     * returns are ignored.
+     * Id of the corresponding entry in the native "Status Bar Widgets"
+     * menu (View | Appearance | Status Bar Widgets). Its checkbox state is
+     * the single source of truth for whether this item shows in the top
+     * bar (2026-09-20 user decision: "show exactly what the system
+     * settings selected").
+     * <p>
+     * The state is read from the persisted platform widget settings
+     * (resolved via {@code StatusBarWidgetFactory.EP_NAME} + {@code
+     * StatusBarWidgetSettings}) — the same data the menu checkbox renders
+     * from — never from bottom-bar widget instances, which 2026.x no
+     * longer hosts for many native widgets (that instance-based lookup
+     * hid items the user had checked; see AGENTS.md). Plugin-specific
+     * items without a native counterpart return their own factory id
+     * (registered by this plugin). {@code null} means "no factory at all —
+     * the manager falls back to the plugin settings-page toggle".
      */
     default @Nullable String getPlatformWidgetId() {
         return null;

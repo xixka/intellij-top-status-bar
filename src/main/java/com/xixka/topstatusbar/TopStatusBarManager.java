@@ -6,8 +6,8 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.AnActionResult;
 import com.intellij.openapi.actionSystem.ex.AnActionListener;
-import com.intellij.openapi.actionSystem.ex.AnActionResult;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.StatusBarWidgetFactory;
@@ -380,7 +380,11 @@ public final class TopStatusBarManager implements Disposable {
      */
     private void installNativeToggleListener() {
         try {
-            ActionManager.getInstance().addAnActionListener(new AnActionListener() {
+            // 注册通道选用消息总线而非 ActionManager.addAnActionListener：
+            // 后者在 241 已 @Deprecated(forRemoval) 且于 2026.x 被移除（运行期 NoSuchMethodError），
+            // 而 ActionManagerImpl.fireAfterActionPerformed 在 241 与 2026.x 均会
+            // 向 AnActionListener.TOPIC 广播（已对两版平台源码核实）。
+            AnActionListener listener = new AnActionListener() {
                 @Override
                 public void afterActionPerformed(@NotNull AnAction action, @NotNull AnActionEvent event,
                                                  @NotNull AnActionResult result) {
@@ -406,7 +410,9 @@ public final class TopStatusBarManager implements Disposable {
                         DebugLog.log("原生微件开关动作即时同步(actionId=" + actionId + ")");
                     }
                 }
-            }, this);
+            };
+            ApplicationManager.getApplication().getMessageBus().connect(this)
+                    .subscribe(AnActionListener.TOPIC, listener);
         } catch (Throwable t) {
             DebugLog.warn("installNativeToggleListener: 注册失败（退化为 5s 轮询）", t);
         }

@@ -13,6 +13,14 @@ import java.util.Map;
 
 /**
  * Persisted, project-level Top Status Bar settings.
+ * <p>
+ * Note (2026-09-20): per-item visibility is governed by the native
+ * "Status Bar Widgets" menu (View | Appearance | Status Bar Widgets) —
+ * that menu's checkboxes are exactly what the top bar shows. The persisted
+ * {@code itemEnabled} map survives only as the fallback for items whose
+ * platform widget factory cannot be resolved (older platform version /
+ * corresponding plugin not installed), so users of those setups keep a
+ * working per-item toggle; it is no longer part of the settings UI.
  */
 @State(name = "TopStatusBarSettings", storages = @Storage("topStatusBar.xml"))
 @Service(Service.Level.PROJECT)

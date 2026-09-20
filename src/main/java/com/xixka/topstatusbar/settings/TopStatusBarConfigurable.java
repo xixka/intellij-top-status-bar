@@ -7,18 +7,25 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
 import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.TopStatusBarManager;
-import com.xixka.topstatusbar.model.StatusItems;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Settings page: Settings | Appearance &amp; Behavior | Top Status Bar.
- * Toggles individual status items, the global switch and the custom labels.
+ * <p>
+ * Per-item visibility is deliberately NOT configured here anymore
+ * (2026-09-20): the native "Status Bar Widgets" menu (View | Appearance |
+ * Status Bar Widgets, or right-click the bottom status bar) is the single
+ * source of truth for which items the top bar shows — its checkboxes are
+ * exactly what the top bar mirrors. Keeping a second, competing set of
+ * per-item toggles here only misleads (the earlier "everything shows"
+ * confusion came from this page being treated as the visibility source).
+ * <p>
+ * This page keeps the global switch and the item content settings (deploy
+ * server label, CodeBuddy label).
  */
 public final class TopStatusBarConfigurable implements Configurable {
 
@@ -28,7 +35,6 @@ public final class TopStatusBarConfigurable implements Configurable {
     private JBCheckBox enabledCheckBox;
     private JTextField deployServerField;
     private JTextField codeBuddyField;
-    private final Map<String, JBCheckBox> itemCheckBoxes = new LinkedHashMap<>();
 
     public TopStatusBarConfigurable(@NotNull Project project) {
         this.project = project;
@@ -48,13 +54,8 @@ public final class TopStatusBarConfigurable implements Configurable {
         enabledCheckBox = new JBCheckBox("启用 Top Status Bar 状态项", settings.isEnabled());
         builder.addComponent(enabledCheckBox);
         builder.addVerticalGap(4);
-        builder.addComponent(new JBLabel("状态项（取消勾选可隐藏）："));
-        for (Map.Entry<String, String> entry : StatusItems.displayNames().entrySet()) {
-            JBCheckBox checkBox = new JBCheckBox(entry.getValue(), settings.isItemEnabled(entry.getKey()));
-            itemCheckBoxes.put(entry.getKey(), checkBox);
-            builder.addComponent(checkBox);
-        }
-        builder.addVerticalGap(4);
+        builder.addComponent(new JBLabel("显示哪些状态项由菜单「视图 → 外观 → 状态栏微件」逐项勾选决定：勾选即显示，取消即隐藏。"));
+        builder.addVerticalGap(8);
         deployServerField = new JTextField(nullToEmpty(settings.getDeployServer()));
         builder.addLabeledComponent("默认部署服务器：", deployServerField);
         codeBuddyField = new JTextField(nullToEmpty(settings.getCodeBuddyLabel()));
@@ -72,11 +73,6 @@ public final class TopStatusBarConfigurable implements Configurable {
         if (enabledCheckBox.isSelected() != settings.isEnabled()) {
             return true;
         }
-        for (Map.Entry<String, JBCheckBox> entry : itemCheckBoxes.entrySet()) {
-            if (entry.getValue().isSelected() != settings.isItemEnabled(entry.getKey())) {
-                return true;
-            }
-        }
         if (!text(deployServerField).equals(nullToEmpty(settings.getDeployServer()))) {
             return true;
         }
@@ -87,23 +83,12 @@ public final class TopStatusBarConfigurable implements Configurable {
     public void apply() {
         TopStatusBarSettings settings = TopStatusBarSettings.getInstance(project);
         settings.setEnabled(enabledCheckBox.isSelected());
-        for (Map.Entry<String, JBCheckBox> entry : itemCheckBoxes.entrySet()) {
-            settings.setItemEnabled(entry.getKey(), entry.getValue().isSelected());
-        }
         settings.setDeployServer(text(deployServerField));
         settings.setCodeBuddyLabel(text(codeBuddyField));
-        // 调试日志：设置页是顶栏显示的唯一真源，记录用户到底改了什么
-        StringBuilder toggles = new StringBuilder();
-        for (Map.Entry<String, JBCheckBox> entry : itemCheckBoxes.entrySet()) {
-            if (toggles.length() > 0) {
-                toggles.append(", ");
-            }
-            toggles.append(entry.getKey()).append('=').append(entry.getValue().isSelected());
-        }
         DebugLog.log("设置页 apply: enabled=" + enabledCheckBox.isSelected()
                 + ", deployServer=\"" + text(deployServerField) + "\""
-                + ", codeBuddy=\"" + text(codeBuddyField) + "\""
-                + ", 项开关=[" + toggles + "] → 触发 reload");
+                + ", codeBuddy=\"" + text(codeBuddyField) + "\" → 触发 reload"
+                + "（逐项显示由原生「状态栏微件」菜单决定，设置页不再参与）");
         TopStatusBarManager.getInstance(project).reload();
     }
 
@@ -114,9 +99,6 @@ public final class TopStatusBarConfigurable implements Configurable {
             return;
         }
         enabledCheckBox.setSelected(settings.isEnabled());
-        for (Map.Entry<String, JBCheckBox> entry : itemCheckBoxes.entrySet()) {
-            entry.getValue().setSelected(settings.isItemEnabled(entry.getKey()));
-        }
         deployServerField.setText(nullToEmpty(settings.getDeployServer()));
         codeBuddyField.setText(nullToEmpty(settings.getCodeBuddyLabel()));
     }
@@ -127,7 +109,6 @@ public final class TopStatusBarConfigurable implements Configurable {
         enabledCheckBox = null;
         deployServerField = null;
         codeBuddyField = null;
-        itemCheckBoxes.clear();
     }
 
     private static String text(@Nullable JTextField field) {

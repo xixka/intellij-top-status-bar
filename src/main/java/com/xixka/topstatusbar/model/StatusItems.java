@@ -17,8 +17,11 @@ public final class StatusItems {
 
     private static Map<String, String> createDisplayNames() {
         Map<String, String> names = new LinkedHashMap<>();
-        names.put("statusText", "状态文本");
-        names.put("fileSystemSync", "文件系统同步");
+        // 显示名必须与顶栏实际观感一致，否则用户在设置页找不到对应条目
+        // （2026-09-20：statusText 顶栏显示项目名被用户称为“当前项目”，
+        // fileSystemSync 顶栏显示“已同步 HH:mm:ss”被称为“文件同步”）
+        names.put("statusText", "当前项目");
+        names.put("fileSystemSync", "文件同步");
         names.put("codeBuddy", "CodeBuddy");
         names.put("aggregator", "聚合器");
         names.put("networkLocation", "网络位置");

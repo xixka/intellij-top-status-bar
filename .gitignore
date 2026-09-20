@@ -5,3 +5,10 @@ out/
 *.iml
 .intellijPlatform/
 .DS_Store
+
+# 本地下载的 GitHub Actions 日志与 API 查询产物（CI 调试用，勿提交）
+ci-logs*/
+logs*.zip
+runs*.json
+jobs.json
+runid*.txt

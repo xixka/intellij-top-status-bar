@@ -26,20 +26,22 @@ public interface StatusItem {
 
     /**
      * Id of the corresponding entry in the native "Status Bar Widgets"
-     * menu (View | Appearance | Status Bar Widgets). Its checkbox state is
-     * the single source of truth for whether this item shows in the top
-     * bar (2026-09-20 user decision: "show exactly what the system
-     * settings selected").
+     * menu (View | Appearance | Status Bar Widgets, present on every
+     * supported platform 233+). Non-null for the 11 items mirroring
+     * built-in IDE widgets: the menu checkbox — read from the persisted
+     * platform widget settings ({@code StatusBarWidgetFactory.EP_NAME} +
+     * {@code StatusBarWidgetSettings}) — is the single source of truth for
+     * whether the item shows in the top bar, on every platform version.
      * <p>
-     * The state is read from the persisted platform widget settings
-     * (resolved via {@code StatusBarWidgetFactory.EP_NAME} + {@code
-     * StatusBarWidgetSettings}) — the same data the menu checkbox renders
-     * from — never from bottom-bar widget instances, which 2026.x no
-     * longer hosts for many native widgets (that instance-based lookup
-     * hid items the user had checked; see AGENTS.md). Plugin-specific
-     * items without a native counterpart return their own factory id
-     * (registered by this plugin). {@code null} means "no factory at all —
-     * the manager falls back to the plugin settings-page toggle".
+     * Plugin-specific items return {@code null}: their visibility is
+     * governed by this plugin's own settings page on every platform
+     * version. They deliberately do not register a
+     * {@code statusBarWidgetFactory}: 2026.x synthesizes a second,
+     * independently-stored set of menu entries for every classic factory,
+     * which duplicated the menu and made half the toggles ineffective
+     * (2026-09-20 incident). {@code null} also covers "factory cannot be
+     * resolved" (older platform / plugin not installed) — the manager then
+     * falls back to the plugin settings-page toggle.
      */
     default @Nullable String getPlatformWidgetId() {
         return null;

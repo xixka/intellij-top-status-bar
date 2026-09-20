@@ -34,16 +34,6 @@ public final class FileSystemSyncItem extends AbstractStatusItem {
         super("fileSystemSync", 40);
     }
 
-    /**
-     * Mirrors the plugin's own {@code fileSystemSync} statusBarWidgetFactory
-     * registered in plugin.xml, so the native "Status Bar Widgets" menu
-     * checkbox governs this item exactly like the built-in widgets.
-     */
-    @Override
-    public @Nullable String getPlatformWidgetId() {
-        return "fileSystemSync";
-    }
-
     @Override
     protected void install() {
         connection = ApplicationManager.getApplication().getMessageBus().connect();

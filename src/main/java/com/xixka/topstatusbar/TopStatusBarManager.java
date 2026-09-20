@@ -1,6 +1,8 @@
 package com.xixka.topstatusbar;
 
 import com.intellij.openapi.Disposable;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.StatusBarWidgetFactory;
@@ -29,29 +31,59 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Project-level service owning the status items: installs their listeners,
  * schedules the periodic refresh and forwards change notifications to the
  * toolbar component.
  * <p>
- * Which items exist is decided by the native "Status Bar Widgets" menu
- * (View | Appearance | Status Bar Widgets, 2026-09-20 user decision): a
- * candidate is loaded while its checkbox is on in that menu. The checkbox
- * state is read from the persisted platform {@link StatusBarWidgetSettings}
- * (ide.general.xml) — the same source the menu itself renders from — and
- * never from bottom-bar widget instances, which 2026.x no longer hosts for
- * many native widgets (that instance-based lookup was the root cause of the
- * earlier "checked items never show" incident, see AGENTS.md).
+ * Hybrid source of truth (2026-09-20, cross-version robust design):
+ * <ul>
+ * <li>The 11 items mirroring built-in IDE widgets follow the native
+ * "Status Bar Widgets" menu (View | Appearance | Status Bar Widgets,
+ * available on every supported platform 233+): a candidate loads while its
+ * checkbox is on there. The state is read from the persisted platform
+ * {@link StatusBarWidgetSettings} — the same source the menu renders — never
+ * from bottom-bar widget instances (2026.x no longer hosts them).</li>
+ * <li>The 6 plugin-specific items are governed by this plugin's own settings
+ * page ({@code TopStatusBarConfigurable}, persisted in
+ * {@code TopStatusBarSettings.itemEnabled}). They intentionally do NOT
+ * register {@code statusBarWidgetFactory} extensions: 2026.x synthesizes a
+ * second, independently-stored set of menu entries for every classic
+ * factory, which duplicated the menu and made half the toggles ineffective
+ * (user screenshot 2026-09-20 — the "unchecked but still shown" incident).
+ * </li>
+ * </ul>
+ * The manager also detects stale widget factories from an old plugin copy
+ * left on disk (the other historical source of doubled menu entries) and
+ * notifies the user to remove it.
  */
 public final class TopStatusBarManager implements Disposable {
 
     private static final long REFRESH_INTERVAL_SECONDS = 5;
+
+    /**
+     * Widget ids this plugin used to register as {@code statusBarWidgetFactory}
+     * extensions (until 2026-09-20). Finding any of them in the extension
+     * point now means an OLD copy of this plugin is still loaded — the menu
+     * will show duplicated entries from it. Used by the startup detection
+     * only; ids double as status item ids and never change (hard constraint).
+     */
+    private static final Set<String> LEGACY_OWN_WIDGET_IDS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList("statusText", "fileSystemSync", "codeBuddy",
+                    "aggregator", "networkLocation", "deployServer")));
+
+    /** One stale-copy notification per application session. */
+    private static final AtomicBoolean STALE_FACTORY_NOTIFIED = new AtomicBoolean();
 
     private final Project project;
     private final List<StatusItem> items = new CopyOnWriteArrayList<>();
@@ -74,6 +106,7 @@ public final class TopStatusBarManager implements Disposable {
         this.project = project;
         DebugLog.log("manager 创建: project=" + project.getName()
                 + ", 周期刷新间隔=" + REFRESH_INTERVAL_SECONDS + "s");
+        detectStaleWidgetFactories();
         reload();
         periodicRefresh = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::scheduledRefresh,
@@ -111,24 +144,26 @@ public final class TopStatusBarManager implements Disposable {
         candidates = createItems();
         if (settings.isEnabled()) {
             List<String> skippedByMenu = new ArrayList<>();
-            List<String> skippedByFallback = new ArrayList<>();
+            List<String> skippedBySettings = new ArrayList<>();
             List<String> missingFactories = new ArrayList<>();
             for (StatusItem candidate : candidates) {
                 String widgetId = candidate.getPlatformWidgetId();
-                if (widgetId != null && findWidgetFactory(widgetId) == null) {
-                    missingFactories.add(widgetId);
+                StatusBarWidgetFactory factory = widgetId == null ? null : findWidgetFactory(widgetId);
+                if (widgetId != null && factory == null) {
+                    // 原生工厂缺失：老平台版本 / 对应插件未装，回退设置页开关（仅镜像项会遇到）
+                    missingFactories.add(candidate.getId() + "->" + widgetId);
                 }
-                if (isDisplayEnabled(candidate)) {
+                if (isDisplayEnabled(candidate, factory)) {
                     items.add(candidate);
-                } else if (widgetId != null) {
+                } else if (factory != null) {
                     skippedByMenu.add(candidate.getId());
                 } else {
-                    skippedByFallback.add(candidate.getId());
+                    skippedBySettings.add(candidate.getId());
                 }
             }
             DebugLog.log("reload: 装载 " + items.size() + " 项: " + itemIds()
                     + (skippedByMenu.isEmpty() ? "" : "; 原生菜单关闭跳过: " + skippedByMenu)
-                    + (skippedByFallback.isEmpty() ? "" : "; 设置页关闭跳过(无工厂回退): " + skippedByFallback)
+                    + (skippedBySettings.isEmpty() ? "" : "; 设置页关闭跳过(插件自有项/回退): " + skippedBySettings)
                     + (missingFactories.isEmpty() ? "" : "; 未找到平台微件工厂(回退设置页): " + missingFactories));
         } else {
             DebugLog.log("reload: 全局开关关闭 → 不装载任何状态项");
@@ -165,26 +200,25 @@ public final class TopStatusBarManager implements Disposable {
     }
 
     /**
-     * Whether a candidate item may be shown: the checkbox state of its
-     * entry in the native "Status Bar Widgets" menu (2026-09-20 user
-     * decision — "show exactly what the system settings selected").
-     * <p>
-     * The state is read via the persisted {@link StatusBarWidgetSettings}
-     * resolved against the factory from {@link StatusBarWidgetFactory#EP_NAME},
-     * mirroring how the menu itself computes its checkboxes. Candidates
-     * without a resolvable factory (older platform, corresponding plugin
-     * not installed) fall back to the plugin settings-page toggle.
-     * <p>
+     * Whether a candidate item may be shown — hybrid source of truth
+     * (2026-09-20, cross-version robust):
+     * <ul>
+     * <li>{@code getPlatformWidgetId() != null} (item mirrors a built-in IDE
+     * widget): the checkbox state of its entry in the native "Status Bar
+     * Widgets" menu, read via the persisted {@link StatusBarWidgetSettings}
+     * resolved against the factory from {@link StatusBarWidgetFactory#EP_NAME}
+     * — the same data the menu itself computes its checkboxes from. If the
+     * factory cannot be resolved (older platform, corresponding plugin not
+     * installed), the plugin settings-page toggle takes over.</li>
+     * <li>{@code getPlatformWidgetId() == null} (plugin-specific item): the
+     * plugin settings-page toggle, on every platform version.</li>
+     * </ul>
      * Must be called on the EDT (the platform toggle action also updates
      * this setting on the EDT).
      */
-    private boolean isDisplayEnabled(@NotNull StatusItem item) {
-        String widgetId = item.getPlatformWidgetId();
-        if (widgetId != null) {
-            StatusBarWidgetFactory factory = findWidgetFactory(widgetId);
-            if (factory != null) {
-                return isFactoryEnabled(factory);
-            }
+    private boolean isDisplayEnabled(@NotNull StatusItem item, @Nullable StatusBarWidgetFactory resolvedFactory) {
+        if (resolvedFactory != null) {
+            return isFactoryEnabled(resolvedFactory);
         }
         return TopStatusBarSettings.getInstance(project).isItemEnabled(item.getId());
     }
@@ -195,7 +229,10 @@ public final class TopStatusBarManager implements Disposable {
         } catch (LinkageError | Exception e) {
             // Fail-open: a missing/unreadable settings service must never hide
             // items the user enabled (the historical "nothing shows" failure
-            // mode was exactly a silent all-suppress).
+            // mode was exactly a silent all-suppress). On a hypothetical
+            // future platform that renames/moves this internal API the 11
+            // mirrored items simply stay visible; the 6 own items keep their
+            // settings-page control either way.
             DebugLog.warn("isFactoryEnabled: 读取 StatusBarWidgetSettings 失败(factory="
                     + factory.getId() + ") → 按启用处理", e);
             return true;
@@ -213,6 +250,60 @@ public final class TopStatusBarManager implements Disposable {
     }
 
     /**
+     * Startup guard against an old copy of this plugin still being loaded:
+     * current versions register no {@code statusBarWidgetFactory} at all, so
+     * any factory in the extension point answering to one of the six legacy
+     * ids comes from a stale copy — the native "Status Bar Widgets" menu
+     * would show duplicated entries from it. Logs every instance (class +
+     * classloader identity, for the idea.log evidence chain) and raises one
+     * balloon per session telling the user how to clean it up. Pure EP scan,
+     * no platform-version-specific API, best-effort guarded.
+     */
+    private void detectStaleWidgetFactories() {
+        try {
+            List<String> found = new ArrayList<>();
+            for (StatusBarWidgetFactory factory : StatusBarWidgetFactory.EP_NAME.getExtensionList()) {
+                if (factory != null && LEGACY_OWN_WIDGET_IDS.contains(factory.getId())) {
+                    found.add(factory.getId() + " ← " + factory.getClass().getName()
+                            + " @" + Integer.toHexString(System.identityHashCode(factory))
+                            + " classloader=" + factory.getClass().getClassLoader());
+                }
+            }
+            if (!found.isEmpty()) {
+                DebugLog.warn("检测到本插件旧版本的微件工厂仍在注册（原生菜单重复条目来源，建议移除旧副本）: "
+                        + String.join(" | ", found));
+                notifyStaleWidgetFactories(found.size());
+            }
+        } catch (Throwable t) {
+            DebugLog.warn("detectStaleWidgetFactories: 检测失败（不影响功能）", t);
+        }
+    }
+
+    private void notifyStaleWidgetFactories(int factoryCount) {
+        if (!STALE_FACTORY_NOTIFIED.compareAndSet(false, true)) {
+            return;
+        }
+        // 项目服务构造可能发生在非 EDT：气球通知统一调度到 EDT，且校验项目未关闭
+        ApplicationManager.getApplication().invokeLater(() -> {
+            if (project.isDisposed()) {
+                return;
+            }
+            try {
+                NotificationGroupManager.getInstance().getNotificationGroup("TopStatusBar")
+                        .createNotification("Top Status Bar：检测到旧版本副本残留",
+                                "原生「状态栏微件」菜单里本插件的条目来自旧版本副本（检测到 " + factoryCount
+                                        + " 个残留微件工厂）。请到 Settings → Plugins 搜索 \"Top Status Bar\"，"
+                                        + "若出现多条请禁用/卸载旧的一条并重启 IDE；菜单重复条目与开关失灵即会消失。"
+                                        + "详见 idea.log 中 TSB 前缀日志。",
+                                NotificationType.WARNING)
+                        .notify(project);
+            } catch (Throwable t) {
+                DebugLog.warn("notifyStaleWidgetFactories: 通知发送失败（不影响功能）", t);
+            }
+        });
+    }
+
+    /**
      * Snapshot of the current display decisions (master switch plus a
      * {@code id=0/1} pair per candidate). The periodic poll compares this
      * snapshot and reloads only on change, so an untouched menu costs one
@@ -223,14 +314,9 @@ public final class TopStatusBarManager implements Disposable {
         StringBuilder snapshot = new StringBuilder("master=").append(settings.isEnabled() ? 1 : 0).append(';');
         for (StatusItem candidate : candidates) {
             String widgetId = candidate.getPlatformWidgetId();
-            boolean enabled;
-            if (widgetId != null) {
-                StatusBarWidgetFactory factory = findWidgetFactory(widgetId);
-                enabled = factory != null ? isFactoryEnabled(factory)
-                        : settings.isItemEnabled(candidate.getId());
-            } else {
-                enabled = settings.isItemEnabled(candidate.getId());
-            }
+            StatusBarWidgetFactory factory = widgetId == null ? null : findWidgetFactory(widgetId);
+            boolean enabled = factory != null ? isFactoryEnabled(factory)
+                    : settings.isItemEnabled(candidate.getId());
             snapshot.append(candidate.getId()).append(enabled ? "=1;" : "=0;");
         }
         return snapshot.toString();
@@ -242,8 +328,8 @@ public final class TopStatusBarManager implements Disposable {
      * change topic for these toggles (the menu action only persists the
      * state and updates the bottom-bar widgets), so the periodic refresh is
      * the reliable path with a worst-case delay of one refresh interval;
-     * where the platform still hosts the plugin's sync widgets they notify
-     * immediately instead (see {@code widget/TopBarSyncWidget}).
+     * it also picks up plugin settings-page changes made in another IDE
+     * window of the same project.
      */
     private void syncToNativeMenu() {
         if (project.isDisposed()) {
@@ -255,18 +341,6 @@ public final class TopStatusBarManager implements Disposable {
                     + "], 新=[" + snapshot + "]");
             reload();
         }
-    }
-
-    /**
-     * Immediate re-sync entry point for the plugin's sync status bar
-     * widgets: the platform adds/removes them (see
-     * {@code widget/TopBarSyncWidget}) the moment their native menu toggle
-     * flips, and the widget forwards that here. Marshals to the EDT and
-     * reuses the same decision-snapshot comparison as the periodic poll, so
-     * an unchanged state costs nothing.
-     */
-    public void syncNow() {
-        ApplicationManager.getApplication().invokeLater(this::syncToNativeMenu);
     }
 
     private void scheduledRefresh() {

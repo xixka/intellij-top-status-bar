@@ -14,13 +14,20 @@ import java.util.Map;
 /**
  * Persisted, project-level Top Status Bar settings.
  * <p>
- * Note (2026-09-20): per-item visibility is governed by the native
- * "Status Bar Widgets" menu (View | Appearance | Status Bar Widgets) —
- * that menu's checkboxes are exactly what the top bar shows. The persisted
- * {@code itemEnabled} map survives only as the fallback for items whose
+ * Hybrid visibility model (2026-09-20, cross-version robust): the 11 items
+ * mirroring built-in IDE widgets follow the native "Status Bar Widgets"
+ * menu (View | Appearance | Status Bar Widgets) — that menu's checkboxes
+ * are exactly what the top bar shows. The 6 plugin-specific items
+ * (statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/
+ * deployServer) are governed by the {@code itemEnabled} map configured on
+ * this plugin's settings page ({@code TopStatusBarConfigurable}) on every
+ * platform version — they no longer register native widget factories,
+ * because 2026.x synthesizes a second, independently-stored set of menu
+ * entries for every classic factory (the duplicated-menu incident).
+ * <p>
+ * {@code itemEnabled} also remains the fallback for mirrored items whose
  * platform widget factory cannot be resolved (older platform version /
- * corresponding plugin not installed), so users of those setups keep a
- * working per-item toggle; it is no longer part of the settings UI.
+ * corresponding plugin not installed); default is enabled.
  */
 @State(name = "TopStatusBarSettings", storages = @Storage("topStatusBar.xml"))
 @Service(Service.Level.PROJECT)

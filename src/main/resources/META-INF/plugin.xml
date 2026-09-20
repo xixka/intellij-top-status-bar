@@ -16,28 +16,23 @@
                               displayName="Top Status Bar"
                               instance="com.xixka.topstatusbar.settings.TopStatusBarConfigurable"/>
         <notificationGroup id="TopStatusBar" displayType="BALLOON"/>
-        <!-- Plugin-specific items are exposed as native "Status Bar Widgets"
-             toggles (right-click the bottom status bar or View | Appearance |
-             Status Bar Widgets) so that the native menu governs the whole top
-             bar (2026-09-20: show exactly what the system settings select).
-             The factories create invisible zero-size widgets. The toggle
-             state itself is read from the persisted StatusBarWidgetSettings
-             (see TopStatusBarManager.isDisplayEnabled), never from widget
-             presence — 2026.x no longer hosts many widgets on the bottom
-             bar. The sync widget only provides instant notifications on
-             platforms that still host legacy custom widgets. -->
-        <statusBarWidgetFactory id="statusText"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$StatusText"/>
-        <statusBarWidgetFactory id="fileSystemSync"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$FileSystemSync"/>
-        <statusBarWidgetFactory id="codeBuddy"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$CodeBuddy"/>
-        <statusBarWidgetFactory id="aggregator"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$Aggregator"/>
-        <statusBarWidgetFactory id="networkLocation"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$NetworkLocation"/>
-        <statusBarWidgetFactory id="deployServer"
-                                implementation="com.xixka.topstatusbar.widget.TopBarItemWidgetFactories$DeployServer"/>
+        <!-- Deliberately NO `statusBarWidgetFactory` registrations (2026-09-20,
+             third turn of this decision):
+             2026.x frontend-izes the status bar and synthesizes a SECOND set
+             of "Status Bar Widgets" menu entries for every classic factory
+             extension, backed by a separate toggle store that this plugin
+             cannot read. Registering our own factories therefore produced
+             duplicated menu entries whose states disagree, and toggling the
+             "wrong" copy never affected the top bar (user screenshot
+             2026-09-20: all six plugin items doubled with mismatched
+             checkboxes, native items single). The fix is the hybrid source
+             of truth: the 11 items mirroring built-in widgets follow the
+             native menu (read from the persisted StatusBarWidgetSettings,
+             see TopStatusBarManager.isDisplayEnabled); the 6 plugin-specific
+             items are controlled by this plugin's own settings page
+             (Settings | Appearance | Top Status Bar) on every platform
+             version. The manager also detects stale factories from an old
+             plugin copy left on disk and notifies the user. -->
     </extensions>
 
     <actions>

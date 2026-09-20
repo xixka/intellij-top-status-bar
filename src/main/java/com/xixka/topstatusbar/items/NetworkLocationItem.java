@@ -34,16 +34,6 @@ public final class NetworkLocationItem extends AbstractStatusItem {
         super("networkLocation", 25);
     }
 
-    /**
-     * Mirrors the plugin's own {@code networkLocation} statusBarWidgetFactory
-     * registered in plugin.xml, so the native "Status Bar Widgets" menu
-     * checkbox governs this item exactly like the built-in widgets.
-     */
-    @Override
-    public @Nullable String getPlatformWidgetId() {
-        return "networkLocation";
-    }
-
     @Override
     protected void install() {
         checkTask = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(

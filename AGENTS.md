@@ -13,21 +13,21 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 
 ## 目录导览
 
-- `src/main/resources/META-INF/plugin.xml` — 插件声明：根级 Action、projectService、设置页、通知组
-- `src/main/java/com/xixka/topstatusbar/` — Action（CustomComponentAction 入口）、Manager（item 生命周期与原生「状态栏微件」菜单开关读取）、Panel（顶栏渲染与自适应隐藏）
-- `src/main/java/com/xixka/topstatusbar/items/` — 17 个状态项；`model/` — StatusItem 架构与 id→显示名注册表；`settings/` — 设置页（总开关与内容配置）；`ui/StatusCell.java` — 单元格绘制；`widget/` — 插件自有项的原生微件工厂（零尺寸同步微件，只做即时通知）
+- `src/main/resources/META-INF/plugin.xml` — 插件声明：根级 Action、projectService、设置页、通知组；**刻意不注册任何 statusBarWidgetFactory**（原因见硬约束）
+- `src/main/java/com/xixka/topstatusbar/` — Action（CustomComponentAction 入口）、Manager（item 生命周期、镜像项原生菜单开关读取、陈旧工厂残留检测）、Panel（顶栏渲染与自适应隐藏）
+- `src/main/java/com/xixka/topstatusbar/items/` — 17 个状态项；`model/` — StatusItem 架构与 id→显示名注册表；`settings/` — 设置页（总开关 + 自有 6 项逐项开关 + 内容配置）；`ui/StatusCell.java` — 单元格绘制
 
 ## 条件路由
 
 - 修改/新增状态项 → 先看 `model/StatusItems.java`（id 注册表）与 `items/` 同类实现；id 一经发布不可改
-- 修改微件开关同步 → 看 `widget/TopBarSyncWidget.java` 与 `TopStatusBarManager.isDisplayEnabled`/`syncToNativeMenu`（决策快照比对、变化才 reload）
+- 修改逐项显隐决策 → 看 `TopStatusBarManager.isDisplayEnabled`/`syncToNativeMenu`（决策快照比对、变化才 reload）与 `TopStatusBarConfigurable`（自有 6 项 UI）
 - 修改构建/发布流程 → 同步核对 `build.gradle.kts` 与 `.github/workflows/ci.yml`
 - 平台 API 位置不确定 → 对照 intellij-community 241.14494 源码核实后再写（历史上 JBUI、BulkFileListener、setupAntialiasing、ActionButtonUtil 都曾出错）
 
 ## 完成的定义
 
 - CI（GitHub Actions）`buildPlugin` 通过即编译完成，无其他自动化门槛
-- 行为验证（runIde 沙盒把 Top Status Bar 拖入 Main Toolbar、原生「状态栏微件」菜单勾选/取消后顶栏逐项跟随显隐（含插件自有 6 项，取消后全部隐藏仍可恢复）、设置页总开关与部署/CodeBuddy 配置、单元格点击弹出菜单与只读锁定切换）由人工执行，结论写入提交说明
+- 行为验证（runIde 沙盒把 Top Status Bar 拖入 Main Toolbar；原生「状态栏微件」菜单勾选/取消后镜像 11 项逐项跟随显隐；设置页自有 6 项开关与总开关、部署/CodeBuddy 配置；单元格点击弹出菜单与只读锁定切换；装旧副本时启动弹残留警告）由人工执行，结论写入提交说明
 - 每个提交独立可编译：提交即推送，CI 即时反馈
 
 ## 平台已知坑（对照 intellij-community 233.14475/241.14494/master 源码核实）
@@ -38,12 +38,13 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - 涉及 VCS/仓库映射、VFS 扫描类 API（getAllVersionedRoots、checkAndUpdateRepositoryCollection 等）一律不放 EDT
 - EDT 的 Swing 回调（mouseClicked 等）不持有 write-intent 锁：`FileDocumentManager.saveAllDocuments` 等模型访问必须包 `WriteIntentReadAction.run`（且必须在 EDT，平台 assertEventDispatchThread；见 `items/ReadOnlyItem.java`）；注意 `run` 有 Runnable/ThrowableRunnable 两个重载，lambda 必须显式 `(Runnable)` 转型，否则编译歧义（run 21 编译事故）；`ReadAction.nonBlocking` 同理有 Runnable/Callable 重载，块式 lambda 显式 return 消歧
 - **2026.x 平台微件前端化**：Git 分支已迁移为主工具栏动作 `main.toolbar.git.Branches`（GitToolbarWidgetAction），多数原生微件不再挂在底栏（PowerSaveMode/Encoding 等 id 未变但底栏常无实例）——`StatusBar.getWidget(id)` 的返回值不再可靠反映用户意图，**判断原生菜单勾选状态必须读持久化的 `com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetSettings`**（`isEnabled(factory)`，工厂经 `StatusBarWidgetFactory.EP_NAME.getExtensionList()` 按 id 解析；233.14475/241.14494/262 三版核实 FQN 与签名一致，存储在 ide.general.xml）
+- **2026.x 会为每个经典 statusBarWidgetFactory 生成第二套菜单条目（独立存储）**（用户 2026-09-20 截图实证：插件 6 项全部成对出现、两行勾选状态互不相同、11 个原生项仅一次；对照 master StatusBarWidgetsActionGroup/StatusBarWidgetSettings 源码——同 id 工厂必同状态，状态相异证明另一套条目读的是另一套存储，插件无法读取）：给插件自有项注册经典工厂必然导致菜单成双 + 一半开关失灵，此路不通；自有项显隐只能走插件设置页
 
 ## 硬约束
 
 - **每次发布新版本，版本号必须加 1**：dev 构建由 CI 自动注入 `0.1.<run_number>`；正式构建必须 `-PbuildVersion=x.y.z` 且大于上一正式版。版本号重复会导致 IDE 视为"已安装"不升级、旧构建残留，表现为修复无效/幽灵条目（2026-09-17 双条目事故根因）
-- **已发布的动作 id、状态项 id 与显示文本永不改动/删除**：`TopStatusBar.Widget`（工具栏自定义按 id 持久化 ActionUrl）、设置页 `topStatusBar`、各状态项 id（statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/deployServer…，状态项 id 同时是微件工厂 id，原生菜单勾选状态按它持久化）。六个微件工厂注册于 2026-09-18 按用户要求移除（当时双插件副本致菜单成双），2026-09-20 为让原生菜单接管逐项显示而恢复，id 与旧版一致，用户已持久化的勾选状态无缝衔接；ide.general.xml 中遗留状态按平台规则复用，无害
-- **顶栏显示的唯一真源是原生「状态栏微件」菜单**（View → Appearance → Status Bar Widgets 的逐项勾选，2026-09-20 用户最终确认："系统设置选择了什么就显示什么"）：勾选即显示、取消即隐藏。机制：`TopStatusBarManager.isDisplayEnabled` 经 `StatusBarWidgetFactory.EP_NAME` 解析工厂后读持久化 `StatusBarWidgetSettings.isEnabled(factory)`（与菜单复选框同源）——**绝不读底栏微件实例**（`StatusBar.getWidget` 在 2026.x 恒 null，历史两轮"跟随原生菜单"实现都因此把勾选项永久隐藏，语义没错、机制错了；2026-09-18 曾短暂改为插件设置页为真源，用户次日否定"我不是要全部显示"）。插件自有 6 项以同名 id 注册 `statusBarWidgetFactory` 出现在同一菜单。工厂缺失（老平台/对应插件未装）回退设置页 itemEnabled 持久化映射（设置 UI 已移除逐项开关）。变化检测：平台无变更 topic → 5s 轮询决策快照（变化才 reload，items 全空也不断轮询）+ 同步微件被平台托管时 addNotify/removeNotify 即时通知；读取异常 fail-open 按启用处理
+- **已发布的动作 id、状态项 id 与显示文本永不改动/删除**：`TopStatusBar.Widget`（工具栏自定义按 id 持久化 ActionUrl）、设置页 `topStatusBar`、各状态项 id（statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/deployServer…）。六个同名微件工厂注册经历了三轮反复：2026-09-18 因双插件副本致菜单成双而移除 → 2026-09-20 为让原生菜单接管逐项显示而恢复（id 与旧版一致）→ 同日晚因 2026.x 前端桥接为每个经典工厂生成第二套独立存储的菜单条目（成对且状态互不相通、插件读不到另一套存储）而再次移除，自有 6 项改由插件设置页控制。ide.general.xml 中遗留的同 id 开关状态按平台规则复用，无害；**今后不要再为插件自有项注册 statusBarWidgetFactory**
+- **顶栏显示采用混合真源（2026-09-20，跨版本鲁棒）**：镜像平台原生微件的 11 项跟随原生「状态栏微件」菜单（View → Appearance → Status Bar Widgets，233+ 各版均有该菜单；机制：`TopStatusBarManager.isDisplayEnabled` 经 `StatusBarWidgetFactory.EP_NAME` 解析工厂后读持久化 `StatusBarWidgetSettings.isEnabled(factory)`——**绝不读底栏微件实例**；工厂缺失回退设置页 itemEnabled）；插件自有 6 项由插件设置页（`TopStatusBarConfigurable`，持久化 itemEnabled）控制，**全版本行为一致**。变化检测：平台无变更 topic → 5s 轮询决策快照（变化才 reload，items 全空也不断轮询）；读取异常 fail-open 按启用处理。启动时 `detectStaleWidgetFactories` 扫描 EP 中六个遗留 id——命中即旧副本残留（重复菜单的另一来源），日志（含 classloader 证据）+ 每会话一次气球通知指引用户清理
 - 本地不执行任何 gradle 构建（含 runIde）：编译验证一律以 CI 结果为准，沙盒验证留给人工
 - 不修改 IDEA 内部 UI：不创建第二行 Toolbar、不反射内部实现、不碰 MainFrame；只用官方 Action System 公共 API
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权）；每完成一个改动立即 commit 并 push，提交身份固定为 `xaxka`

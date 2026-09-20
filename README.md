@@ -55,6 +55,7 @@
 
 - **安装 dev 构建后请确认版本号**：`Settings → Plugins → Top Status Bar` 显示的版本应与 Release 页面 asset 文件名一致；若仍是旧版本号，说明 IDE 未把它当作升级——先完全卸载旧版并重启，再 Install Plugin from Disk。
 - **Add Action 树中出现两个条目 / 工具栏出现幽灵条目**：说明 IDE 内仍残留旧构建（历史版本曾同时注册 `Top Status Bar` 组与 `Top Status Bar Widget` 动作，新版只保留单一动作 `Top Status Bar`，显示文本由平台按动作 id 实时解析）。处理：卸载插件并重启 → 安装最新 dev 构建 → 在 `Settings → Appearance & Behavior → Menus and Toolbars` 中删除 Main Toolbar 里的 `TopStatusBar` / `Top Status Bar Widget` 残留条目 → 重新 Add Action 添加 `Top Status Bar`。
+- **排查顶栏不显示 / 项丢失 / 不刷新**：插件在关键链路（管理器装载、面板绑定项目、单元格渲染与自适应隐藏、状态项状态迁移、Git 异步解析、设置页应用）持续输出调试日志，全部以 `TSB ` 前缀写入 IDE 日志。获取方式：菜单 `Help → Show Log in Explorer/Finder` 打开日志目录，找到 `idea.log`，检索 `TSB`。日志只在状态实际变化或出现异常时写入（窗口拖拽 resize 不会刷屏），把出现问题前后时间段的日志发给维护者即可定位。
 
 ## 状态项定制开发
 

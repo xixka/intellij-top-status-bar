@@ -36,11 +36,13 @@
 
 `Settings → Appearance & Behavior → Top Status Bar`：
 
-- 总开关与逐项开关（勾选即显示、取消即隐藏，即时生效）
+- 总开关（关闭 = 顶栏不装载任何状态项）
 - 默认部署服务器（显示为 `部署: xxx`，点击单元格可跳回设置）
 - CodeBuddy 标签（留空则隐藏该项）
 
-> 顶栏显示只由本设置页控制，与 IDEA 底部状态栏的原生微件开关互相独立。
+**逐项显示由原生「状态栏微件」菜单决定**（`View → 外观 → 状态栏微件`，或右键底部状态栏）：菜单里勾选哪些条目，顶栏就显示哪些——勾选即显示、取消即隐藏，最迟约 5 秒内生效。插件自有的 6 个条目（状态文本、文件系统同步、CodeBuddy、聚合器、网络位置、默认部署服务器）同样注册在该菜单中，与其余 11 个平台原生条目一并控制。
+
+> 该菜单的勾选状态持久化在 `ide.general.xml`，插件读取的是这份开关状态（与菜单复选框同源），而非底部状态栏是否实际承载对应微件——2026.x 前端化后多数原生微件已不挂底栏，按实例判断会误隐藏已勾选项。
 
 ## 工程与构建
 
@@ -59,5 +61,5 @@
 
 ## 状态项定制开发
 
-- 新增状态项：实现 `model/StatusItem`（或继承 `items/CurrentFileItem` / `model/AbstractStatusItem`），在 `TopStatusBarManager.createItems()` 与 `model/StatusItems.java` 登记即可
-- 单元格视觉在 `ui/StatusCell.java`，宽度自适应隐藏策略在 `TopStatusBarPanel.java`
+- 新增状态项：实现 `model/StatusItem`（或继承 `items/CurrentFileItem` / `model/AbstractStatusItem`），在 `TopStatusBarManager.createItems()` 与 `model/StatusItems.java` 登记即可；有平台原生对应项的返回其工厂 id（`getPlatformWidgetId`），插件自有的新项还需在 `widget/TopBarItemWidgetFactories` 加嵌套工厂类并在 `plugin.xml` 注册 `statusBarWidgetFactory`（工厂 id = 项 id），否则它不会出现在原生「状态栏微件」菜单、只能靠设置页回退开关
+- 单元格视觉在 `ui/StatusCell.java`，宽度自适应隐藏策略在 `TopStatusBarPanel.java`，逐项显隐决策在 `TopStatusBarManager.isDisplayEnabled`

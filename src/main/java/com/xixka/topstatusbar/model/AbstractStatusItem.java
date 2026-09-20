@@ -1,6 +1,7 @@
 package com.xixka.topstatusbar.model;
 
 import com.intellij.openapi.project.Project;
+import com.xixka.topstatusbar.DebugLog;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +36,7 @@ public abstract class AbstractStatusItem implements StatusItem {
     public final void install(@NotNull Project project, @NotNull Runnable onChange) {
         this.project = project;
         this.onChange = onChange;
+        DebugLog.log("item=" + id + " install → project=" + project.getName());
         install();
     }
 
@@ -42,6 +44,7 @@ public abstract class AbstractStatusItem implements StatusItem {
 
     @Override
     public void uninstall() {
+        DebugLog.log("item=" + id + " uninstall（text=\"" + text + "\", visible=" + visible + "）");
         this.project = null;
         this.onChange = null;
     }
@@ -70,6 +73,7 @@ public abstract class AbstractStatusItem implements StatusItem {
     protected final void setText(@Nullable String value) {
         String newValue = value == null ? "" : value;
         if (!newValue.equals(text)) {
+            DebugLog.log("item=" + id + " text: \"" + text + "\" → \"" + newValue + "\"");
             text = newValue;
             changed();
         }
@@ -77,6 +81,7 @@ public abstract class AbstractStatusItem implements StatusItem {
 
     protected final void setIcon(@Nullable Icon value) {
         if (value != icon) {
+            DebugLog.log("item=" + id + " icon: " + iconName(icon) + " → " + iconName(value));
             icon = value;
             changed();
         }
@@ -84,6 +89,7 @@ public abstract class AbstractStatusItem implements StatusItem {
 
     protected final void setTooltip(@Nullable String value) {
         if (!Objects.equals(value, tooltip)) {
+            DebugLog.log("item=" + id + " tooltip: \"" + tooltip + "\" → \"" + value + "\"");
             tooltip = value;
             changed();
         }
@@ -91,6 +97,7 @@ public abstract class AbstractStatusItem implements StatusItem {
 
     protected final void setVisible(boolean value) {
         if (value != visible) {
+            DebugLog.log("item=" + id + " visible: " + visible + " → " + value);
             visible = value;
             changed();
         }
@@ -98,9 +105,14 @@ public abstract class AbstractStatusItem implements StatusItem {
 
     protected final void setSeverity(@NotNull StatusSeverity value) {
         if (value != severity) {
+            DebugLog.log("item=" + id + " severity: " + severity + " → " + value);
             severity = value;
             changed();
         }
+    }
+
+    private static String iconName(@Nullable Icon icon) {
+        return icon == null ? "null" : icon.getClass().getSimpleName();
     }
 
     @Override

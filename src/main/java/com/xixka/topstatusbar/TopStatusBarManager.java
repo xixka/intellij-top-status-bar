@@ -107,6 +107,7 @@ public final class TopStatusBarManager implements Disposable {
         DebugLog.log("manager 创建: project=" + project.getName()
                 + ", 周期刷新间隔=" + REFRESH_INTERVAL_SECONDS + "s");
         detectStaleWidgetFactories();
+        migrateLegacyOwnItemToggles();
         reload();
         periodicRefresh = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::scheduledRefresh,
@@ -247,6 +248,57 @@ public final class TopStatusBarManager implements Disposable {
             }
         }
         return null;
+    }
+
+    /**
+     * One-time import of the user's historical per-item choices (2026-09-20).
+     * Builds before the hybrid source of truth registered the six
+     * plugin-specific items as {@code statusBarWidgetFactory} extensions, so
+     * their visibility was toggled via the native "Status Bar Widgets" menu
+     * and persisted by the platform in the classic
+     * {@link StatusBarWidgetSettings} store (ide.general.xml), keyed by the
+     * same ids ({@link #LEGACY_OWN_WIDGET_IDS}). Current versions govern
+     * those items exclusively via the plugin settings page — registering
+     * factories is not an option because 2026.x synthesizes a second,
+     * independently-stored set of menu entries for every classic factory.
+     * Without this import, items the user had explicitly hidden in the
+     * native menu reappear after the upgrade (the "everything shows again"
+     * regression).
+     * <p>
+     * The old factories never overrode {@code isEnabledByDefault} (platform
+     * default: enabled), so a persisted value can only be an explicit
+     * <em>disabled</em>; nothing to import when the store has no entry.
+     * An explicit settings-page choice always wins over the import, which
+     * makes the migration idempotent across restarts and projects.
+     * The legacy platform-store entries are intentionally left untouched
+     * (harmless: nothing reads them once no factory answers to those ids).
+     */
+    private void migrateLegacyOwnItemToggles() {
+        TopStatusBarSettings settings = TopStatusBarSettings.getInstance(project);
+        List<String> migrated = new ArrayList<>();
+        for (String id : LEGACY_OWN_WIDGET_IDS) {
+            if (settings.hasItemEnabledExplicitly(id)) {
+                continue;
+            }
+            if (isLegacyOwnItemExplicitlyDisabled(id)) {
+                settings.setItemEnabled(id, false);
+                migrated.add(id);
+            }
+        }
+        if (!migrated.isEmpty()) {
+            DebugLog.log("遗留原生菜单勾选迁移: " + migrated
+                    + " → 插件设置页置为关闭（旧版曾注册同名原生微件工厂，用户已在原生菜单取消勾选）");
+        }
+    }
+
+    private static boolean isLegacyOwnItemExplicitlyDisabled(@NotNull String id) {
+        try {
+            // 与 isEnabled 同属一个内部服务：241/261 源码核实签名一致；233 若缺失由守卫兜底（不迁移，保持默认启用）
+            return StatusBarWidgetSettings.getInstance().isExplicitlyDisabled(id);
+        } catch (LinkageError | Exception e) {
+            DebugLog.warn("migrateLegacyOwnItemToggles: 读取遗留原生菜单勾选失败(id=" + id + ") → 跳过", e);
+            return false;
+        }
     }
 
     /**

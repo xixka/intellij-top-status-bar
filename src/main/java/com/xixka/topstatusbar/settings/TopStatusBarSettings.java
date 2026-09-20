@@ -69,6 +69,17 @@ public final class TopStatusBarSettings implements PersistentStateComponent<TopS
         return state.itemEnabled.getOrDefault(itemId, Boolean.TRUE);
     }
 
+    /**
+     * Whether the user has an explicit persisted choice for this item (as
+     * opposed to the implicit default "enabled"). Used by the one-time
+     * import of legacy native-menu toggles
+     * ({@code TopStatusBarManager.migrateLegacyOwnItemToggles}): only items
+     * without an explicit settings-page choice participate in the import.
+     */
+    public boolean hasItemEnabledExplicitly(@NotNull String itemId) {
+        return state.itemEnabled.containsKey(itemId);
+    }
+
     public void setItemEnabled(@NotNull String itemId, boolean enabled) {
         state.itemEnabled.put(itemId, enabled);
     }

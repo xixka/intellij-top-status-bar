@@ -56,9 +56,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li>The 11 items mirroring built-in IDE widgets follow the native
  * "Status Bar Widgets" menu (View | Appearance | Status Bar Widgets,
  * available on every supported platform 233+): a candidate loads while its
- * checkbox is on there. The state is read from the persisted platform
- * {@link StatusBarWidgetSettings} — the same source the menu renders — never
- * from bottom-bar widget instances (2026.x no longer hosts them).</li>
+ * checkbox is on there <em>and</em> the resolved factory reports
+ * {@code isAvailable(project)} — the same "own show/hide logic" the native
+ * menu applies before listing an entry (ToggleWidgetAction.update, 241 and
+ * 2026.x platform sources). The checkbox state is read from the persisted
+ * platform {@link StatusBarWidgetSettings} — the same source the menu
+ * renders — never from bottom-bar widget instances (2026.x no longer hosts
+ * them).</li>
  * <li>The 6 plugin-specific items are governed by this plugin's own settings
  * page ({@code TopStatusBarConfigurable}, persisted in
  * {@code TopStatusBarSettings.itemEnabled}). They intentionally do NOT
@@ -152,6 +156,7 @@ public final class TopStatusBarManager implements Disposable {
         if (settings.isEnabled()) {
             List<String> skippedByMenu = new ArrayList<>();
             List<String> skippedBySettings = new ArrayList<>();
+            List<String> skippedByAvailability = new ArrayList<>();
             List<String> missingFactories = new ArrayList<>();
             for (StatusItem candidate : candidates) {
                 String widgetId = candidate.getPlatformWidgetId();
@@ -162,14 +167,17 @@ public final class TopStatusBarManager implements Disposable {
                 }
                 if (isDisplayEnabled(candidate, factory)) {
                     items.add(candidate);
-                } else if (factory != null) {
-                    skippedByMenu.add(candidate.getId());
-                } else {
+                } else if (factory == null) {
                     skippedBySettings.add(candidate.getId());
+                } else if (!isFactoryAvailable(factory)) {
+                    skippedByAvailability.add(candidate.getId());
+                } else {
+                    skippedByMenu.add(candidate.getId());
                 }
             }
             DebugLog.log("reload: 装载 " + items.size() + " 项: " + itemIds()
                     + (skippedByMenu.isEmpty() ? "" : "; 原生菜单关闭跳过: " + skippedByMenu)
+                    + (skippedByAvailability.isEmpty() ? "" : "; 工厂自带显隐逻辑跳过(isAvailable=false): " + skippedByAvailability)
                     + (skippedBySettings.isEmpty() ? "" : "; 设置页关闭跳过(插件自有项/回退): " + skippedBySettings)
                     + (missingFactories.isEmpty() ? "" : "; 未找到平台微件工厂(回退设置页): " + missingFactories));
         } else {
@@ -214,7 +222,9 @@ public final class TopStatusBarManager implements Disposable {
      * widget): the checkbox state of its entry in the native "Status Bar
      * Widgets" menu, read via the persisted {@link StatusBarWidgetSettings}
      * resolved against the factory from {@link StatusBarWidgetFactory#EP_NAME}
-     * — the same data the menu itself computes its checkboxes from. If the
+     * — the same data the menu itself computes its checkboxes from —
+     * <em>and</em> the factory's own {@code isAvailable(project)} gate (the
+     * same "own show/hide logic" the native menu applies). If the
      * factory cannot be resolved (older platform, corresponding plugin not
      * installed), the plugin settings-page toggle takes over.</li>
      * <li>{@code getPlatformWidgetId() == null} (plugin-specific item): the
@@ -225,9 +235,26 @@ public final class TopStatusBarManager implements Disposable {
      */
     private boolean isDisplayEnabled(@NotNull StatusItem item, @Nullable StatusBarWidgetFactory resolvedFactory) {
         if (resolvedFactory != null) {
-            return isFactoryEnabled(resolvedFactory);
+            return isFactoryEnabled(resolvedFactory) && isFactoryAvailable(resolvedFactory);
         }
         return TopStatusBarSettings.getInstance(project).isItemEnabled(item.getId());
+    }
+
+    /**
+     * 平台微件自带的“要不要显示”逻辑（{@code StatusBarWidgetFactory.isAvailable}）。
+     * 原生 View 菜单只在 {@code isAvailable(project)} 为真时才展示该条目
+     * （241/2026.x 平台 ToggleWidgetAction.update 源码核实），镜像项必须同样
+     * 遵守，否则原生场景下根本不出现的项（如非 Git 项目的 Git 分支、无 LSP
+     * 服务的语言服务）会在顶栏常驻。读取异常 fail-open 按可用处理
+     * （宁可多显示，不重演“什么都不显示”故障）。
+     */
+    private boolean isFactoryAvailable(@NotNull StatusBarWidgetFactory factory) {
+        try {
+            return factory.isAvailable(project);
+        } catch (LinkageError | Exception e) {
+            DebugLog.warn("isFactoryAvailable: 读取失败(factory=" + factory.getId() + ") → 按可用处理", e);
+            return true;
+        }
     }
 
     private static boolean isFactoryEnabled(@NotNull StatusBarWidgetFactory factory) {
@@ -430,8 +457,9 @@ public final class TopStatusBarManager implements Disposable {
         for (StatusItem candidate : candidates) {
             String widgetId = candidate.getPlatformWidgetId();
             StatusBarWidgetFactory factory = widgetId == null ? null : findWidgetFactory(widgetId);
-            boolean enabled = factory != null ? isFactoryEnabled(factory)
-                    : settings.isItemEnabled(candidate.getId());
+            // 与 reload 同一条判定（含工厂 isAvailable），保证可用性变化
+            // （如非 Git 项目变为 Git 项目）也能被轮询/即时监听捕获
+            boolean enabled = isDisplayEnabled(candidate, factory);
             snapshot.append(candidate.getId()).append(enabled ? "=1;" : "=0;");
         }
         return snapshot.toString();

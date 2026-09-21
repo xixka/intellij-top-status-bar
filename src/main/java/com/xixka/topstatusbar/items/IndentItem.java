@@ -34,6 +34,11 @@ import java.util.List;
  * 缩进: tab / space indent effective for the current file.
  * Clicking opens the same indent menu as the native CodeStyleStatusBarWidget
  * (动作清单逐一对应平台 CodeStyleStatusBarWidget.getActions，241 GA 源码核实)。
+ * <p>
+ * 文本与工具提示复刻原生 CodeStyleStatusBarWidget.createWidgetState
+ * （241 GA 源码核实）：有 UI contributor 时取 contributor.getStatusText /
+ * getTooltip（缩进检测生效时即官方「4 个空格」样式），否则回退
+ * IndentStatusBarUIContributor.getIndentInfo / createTooltip。
  */
 public final class IndentItem extends CurrentFileItem {
 
@@ -61,11 +66,18 @@ public final class IndentItem extends CurrentFileItem {
             setVisible(false);
             return;
         }
-        String text = options.USE_TAB_CHARACTER
-                ? "Tab 缩进"
-                : options.INDENT_SIZE + " 空格缩进";
+        CodeStyleStatusBarUIContributor contributor = findUiContributor(psiFile, options);
+        String text;
+        String tooltip;
+        if (contributor != null) {
+            text = contributor.getStatusText(psiFile);
+            tooltip = contributor.getTooltip();
+        } else {
+            text = IndentStatusBarUIContributor.getIndentInfo(options);
+            tooltip = IndentStatusBarUIContributor.createTooltip(text, null);
+        }
         setText(text);
-        setTooltip("缩进：" + text);
+        setTooltip(tooltip != null ? tooltip : text);
         setVisible(true);
     }
 

@@ -430,9 +430,18 @@ public final class TopStatusBarManager implements Disposable {
                     String before = lastDecisionSnapshot;
                     syncToNativeMenu();
                     if (lastDecisionSnapshot.equals(before)) {
-                        DebugLog.log("原生微件开关动作未改变经典存储决策(actionId=" + actionId
-                                + ", class=" + action.getClass().getSimpleName()
-                                + ") → 该条目勾选落入 2026.x 前端独立存储（插件不可读），或开关值未变化");
+                        // 先区分动作归属：菜单里还有大量平台/其他插件自有微件
+                        // （datagrid 的 GridAggregator/GridPosition 等），它们从不进入
+                        // 本插件候选集，快照天然不变——不是故障（2026-09-20/21 两次误诊）
+                        String factoryId = nativeToggle
+                                ? actionId.substring("StatusBarWidgets.Toggle.".length()) : null;
+                        if (factoryId != null && !isMirroredFactoryId(factoryId)) {
+                            DebugLog.log("非镜像微件开关，忽略(actionId=" + actionId + ")");
+                        } else {
+                            DebugLog.log("镜像微件开关动作未改变经典存储决策(actionId=" + actionId
+                                    + ", class=" + action.getClass().getSimpleName()
+                                    + ") → 该条目勾选落入 2026.x 前端独立存储（插件不可读），或开关值未变化");
+                        }
                     } else {
                         DebugLog.log("原生微件开关动作即时同步(actionId=" + actionId + ")");
                     }
@@ -443,6 +452,21 @@ public final class TopStatusBarManager implements Disposable {
         } catch (Throwable t) {
             DebugLog.warn("installNativeToggleListener: 注册失败（退化为 5s 轮询）", t);
         }
+    }
+
+    /**
+     * 开关动作 id 后缀是否对应本插件镜像的平台微件工厂。平台注册动作 id 时
+     * 去掉工厂 id 中的空格（StatusBarActionManager.getToggleActionId），
+     * 比较时同样归一化。
+     */
+    private boolean isMirroredFactoryId(@NotNull String actionFactoryId) {
+        for (StatusItem candidate : candidates) {
+            String widgetId = candidate.getPlatformWidgetId();
+            if (widgetId != null && widgetId.replace(" ", "").equals(actionFactoryId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

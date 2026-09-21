@@ -116,6 +116,9 @@ public final class TopStatusBarManager implements Disposable {
         DebugLog.log("manager 创建: project=" + project.getName()
                 + ", 周期刷新间隔=" + REFRESH_INTERVAL_SECONDS + "s");
         detectStaleWidgetFactories();
+        // 默认关闭策略先于遗留勾选迁移：清除早期构建整页 Apply 写下的显式
+        // 勾选，让按项默认（当前项目等默认关闭）真正生效（幂等，按 id 记账）
+        TopStatusBarSettings.getInstance(project).applyDefaultOffPolicy();
         migrateLegacyOwnItemToggles();
         installNativeToggleListener();
         reload();

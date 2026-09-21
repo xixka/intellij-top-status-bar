@@ -27,21 +27,26 @@ import java.util.Map;
  * Bar Widgets) — that menu's checkboxes are exactly what the top bar shows.
  * They are deliberately NOT configurable here: a second, competing set of
  * toggles only misleads.</li>
- * <li>The 6 plugin-specific items (状态文本/文件系统同步/CodeBuddy/聚合器/
- * 网络位置/默认部署服务器) are configured here. They no longer register
+ * <li>The 5 plugin-specific items (当前项目/CodeBuddy/聚合器/网络位置/
+ * 默认部署服务器) are configured here. They never register
  * native widget factories — 2026.x synthesizes a second, independently-
  * stored set of menu entries for every classic factory, which duplicated
  * the menu and made half the toggles ineffective (2026-09-20 incident).
- * This page works identically on every supported platform version.</li>
+ * This page works identically on every supported platform version.
+ * fileSystemSync 镜像平台 VfsRefresh 工厂后移出本页（2026-09-21）。</li>
  * </ul>
  * The page also keeps the global switch and the item content settings
  * (deploy server label, CodeBuddy label).
  */
 public final class TopStatusBarConfigurable implements Configurable {
 
-    /** The plugin-specific items configured on this page (ids never change). */
+    /**
+     * The plugin-specific items configured on this page (ids never change).
+     * fileSystemSync 自 0.1.51 起镜像平台 VfsRefresh 工厂（原生菜单控制），
+     * 不再列入本页；其设置页持久化值仅作工厂缺失老平台的静默回退。
+     */
     private static final List<String> OWN_ITEM_IDS =
-            List.of("statusText", "fileSystemSync", "codeBuddy", "aggregator", "networkLocation", "deployServer");
+            List.of("statusText", "codeBuddy", "aggregator", "networkLocation", "deployServer");
 
     private final Project project;
 
@@ -79,7 +84,7 @@ public final class TopStatusBarConfigurable implements Configurable {
             builder.addComponent(checkBox);
         }
         builder.addVerticalGap(8);
-        builder.addComponent(new JBLabel("镜像平台原生微件的 11 项（行列号、行分隔符、文件编码、省电模式、缩进、"
+        builder.addComponent(new JBLabel("镜像平台原生微件的 12 项（文件同步、行列号、行分隔符、文件编码、省电模式、缩进、"
                 + "JSON 架构、Git 分支、只读特性、内存指示器、语言服务、编辑器选择模式）由菜单"
                 + "「视图 → 外观 → 状态栏微件」勾选控制，与底部状态栏原生行为一致。"));
         builder.addVerticalGap(8);

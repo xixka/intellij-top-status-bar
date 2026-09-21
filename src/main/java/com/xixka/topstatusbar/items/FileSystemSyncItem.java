@@ -17,6 +17,11 @@ import java.util.List;
 /**
  * 文件系统同步: VFS change activity. Shows "同步中" while VFS events are
  * being processed and the timestamp of the last completed sync.
+ * <p>
+ * 显示开关镜像平台原生「文件同步」微件（工厂 id VfsRefresh，241 GA 与
+ * 2026.x 均注册，isEnabledByDefault=false）：原生「状态栏微件」菜单的
+ * 勾选直接控制本项（2026-09-21：用户在原生菜单切换 VfsRefresh 期望控制
+ * 顶栏文件同步，自有项模型下完全无响应）。工厂缺失的老平台回退设置页。
  */
 public final class FileSystemSyncItem extends AbstractStatusItem {
 
@@ -32,6 +37,11 @@ public final class FileSystemSyncItem extends AbstractStatusItem {
 
     public FileSystemSyncItem() {
         super("fileSystemSync", 40);
+    }
+
+    @Override
+    public @Nullable String getPlatformWidgetId() {
+        return "VfsRefresh";
     }
 
     @Override

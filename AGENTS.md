@@ -19,8 +19,8 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 
 ## 条件路由
 
-- 修改/新增状态项 → 先看 `model/StatusItems.java`（id 注册表）与 `items/` 同类实现；id 一经发布不可改
-- 修改逐项显隐决策 → 看 `TopStatusBarManager.isDisplayEnabled`/`syncToNativeMenu`（决策快照比对、变化才 reload）/`installNativeToggleListener`（菜单动作即时同步）/`migrateLegacyOwnItemToggles`（历史勾选迁移）与 `TopStatusBarConfigurable`（自有 6 项 UI）
+- 修改/新增状态项 → 先看 `model/StatusItems.java`（id 注册表 + 按项默认显隐 `DEFAULT_DISABLED_IDS`）与 `items/` 同类实现；id 一经发布不可改
+- 修改逐项显隐决策 → 看 `TopStatusBarManager.isDisplayEnabled`/`syncToNativeMenu`（决策快照比对、变化才 reload）/`installNativeToggleListener`（菜单动作即时同步）/`migrateLegacyOwnItemToggles`（历史勾选迁移）与 `TopStatusBarConfigurable`（自有 6 项 UI）；改默认显隐/调整默认关闭集合 → 看 `StatusItems.DEFAULT_DISABLED_IDS` + `TopStatusBarSettings.applyDefaultOffPolicy`（遗留显式值一次性清除，按 `defaultOffPolicyApplied` 记账幂等）
 - 修改构建/发布流程 → 同步核对 `build.gradle.kts` 与 `.github/workflows/ci.yml`
 - 平台 API 位置不确定 → 对照 intellij-community 241.14494 源码核实后再写（历史上 JBUI、BulkFileListener、setupAntialiasing、ActionButtonUtil 都曾出错）
 
@@ -47,6 +47,7 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - **已发布的动作 id、状态项 id 与显示文本永不改动/删除**：`TopStatusBar.Widget`（工具栏自定义按 id 持久化 ActionUrl）、设置页 `topStatusBar`、各状态项 id（statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/deployServer…）。六个同名微件工厂注册经历了三轮反复：2026-09-18 因双插件副本致菜单成双而移除 → 2026-09-20 为让原生菜单接管逐项显示而恢复（id 与旧版一致）→ 同日晚因 2026.x 前端桥接为每个经典工厂生成第二套独立存储的菜单条目（成对且状态互不相通、插件读不到另一套存储）而再次移除，自有 6 项改由插件设置页控制。fileSystemSync 另有第四轮反复：2026-09-21 上午改为镜像平台 VfsRefresh 工厂（试图让原生菜单直接控制），当日实测 2026.1 把该微件勾选写入前端独立存储（经典存储快照不变、插件不可读）而立即回退设置页。ide.general.xml 中遗留的同 id 开关状态按平台规则复用，无害；**今后不要再为插件自有项注册 statusBarWidgetFactory，也不要把自有项镜像到前端化微件**
 - **顶栏显示采用混合真源（2026-09-20，跨版本鲁棒）**：镜像平台原生微件的 11 项跟随原生「状态栏微件」菜单（View → Appearance → Status Bar Widgets，233+ 各版均有该菜单；机制：`TopStatusBarManager.isDisplayEnabled` 经 `StatusBarWidgetFactory.EP_NAME` 解析工厂后读持久化 `StatusBarWidgetSettings.isEnabled(factory)`，**并叠加工厂自带显隐逻辑 `isAvailable(project)`**——与原生 View 菜单展示条目前的判定一致（241/2026.x ToggleWidgetAction.update 源码核实），可用性变化经决策快照轮询捕获——**绝不读底栏微件实例**；工厂缺失回退设置页 itemEnabled）；插件自有 6 项由插件设置页（`TopStatusBarConfigurable`，持久化 itemEnabled）控制，**全版本行为一致**；设置页显示名必须与顶栏观感一致（statusText=当前项目、fileSystemSync=文件同步，2026-09-20 用户按顶栏文案找不到设置条目的教训）。变化检测：平台无变更 topic → `AnActionListener` 监听 `StatusBarWidgets.Toggle.*` 动作即时同步（动作触发但快照未变 = 勾选落入 2026.x 前端独立存储，日志留证据）+ 5s 轮询决策快照兜底（变化才 reload，items 全空也不断轮询）；读取异常 fail-open 按启用处理。启动时 `detectStaleWidgetFactories` 扫描 EP 中六个遗留 id——命中即旧副本残留（重复菜单的另一来源），日志（含 classloader 证据）+ 每会话一次气球通知指引用户清理
 - **自有 6 项历史勾选一次性迁移（2026-09-20 晚）**：注册工厂时代的用户勾选持久化在平台经典存储（ide.general.xml，同 id）；`migrateLegacyOwnItemToggles` 在启动时把「经典存储显式关闭 + 设置页无显式选择」的项迁入 itemEnabled=false（旧工厂未覆盖 isEnabledByDefault=true → 持久化值只可能是显式关闭；设置页选择优先 → 幂等）。不清理平台遗留条目（无工厂应答后无读取方，无害）。无此迁移，用户在旧版取消勾选的项升级后全部重现
+- **当前项目/文件同步默认关闭 + 遗留显式值一次性清除（2026-09-21 第五轮「还是会显示」定案）**：用户连续五轮要求这两项不再显示，但自有项仅受设置页控制——依赖用户逐项目手动关不可靠，且早期构建的设置页 Apply 把整页勾选写成显式值，显式值优先于默认值，仅改默认压不过遗留的显式 true。机制：`StatusItems.isEnabledByDefault`（`DEFAULT_DISABLED_IDS`：statusText、fileSystemSync）为按项默认；`TopStatusBarSettings.applyDefaultOffPolicy`（Manager 构造时、先于遗留勾选迁移执行）对每个新加入集合的 id 一次性清除其显式值并记入 `defaultOffPolicyApplied` 持久化（幂等；之后用户重新勾选写回的显式值不再被触碰）。教训：**对「用户反复要求隐藏」的自有项，正确终局是默认关闭 + 清遗留显式值，而非继续换控制真源**（原生菜单对自有项不可行已被 09-20/09-21 两次实证否决）
 - 本地不执行任何 gradle 构建（含 runIde）：编译验证一律以 CI 结果为准，沙盒验证留给人工
 - 不修改 IDEA 内部 UI：不创建第二行 Toolbar、不反射内部实现、不碰 MainFrame；只用官方 Action System 公共 API
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权）；每完成一个改动立即 commit 并 push，提交身份固定为 `xaxka`

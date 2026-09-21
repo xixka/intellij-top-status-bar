@@ -18,10 +18,14 @@ import java.util.List;
  * 文件系统同步: VFS change activity. Shows "同步中" while VFS events are
  * being processed and the timestamp of the last completed sync.
  * <p>
- * 显示开关镜像平台原生「文件同步」微件（工厂 id VfsRefresh，241 GA 与
- * 2026.x 均注册，isEnabledByDefault=false）：原生「状态栏微件」菜单的
- * 勾选直接控制本项（2026-09-21：用户在原生菜单切换 VfsRefresh 期望控制
- * 顶栏文件同步，自有项模型下完全无响应）。工厂缺失的老平台回退设置页。
+ * 显示开关由插件设置页「文件同步」逐项开关控制（自有项，全版本一致）。
+ * <p>
+ * 2026-09-21 教训：曾改为镜像平台 VfsRefresh 工厂（跟随原生「状态栏微件」
+ * 菜单勾选），但 2026.1（IU-261.25134.95）实测该微件的菜单勾选落入
+ * 2026.x 前端独立存储——idea.log 中两次 ToggleWidgetAction(VfsRefresh)
+ * 触发后经典 StatusBarWidgetSettings 决策快照纹丝不动，插件无从读取
+ * （同日 PowerSaveMode 勾选却能即时同步，证明经典存储通道本身可用，
+ * 仅前端化微件例外）。镜像此路不通，回退设置页控制。
  */
 public final class FileSystemSyncItem extends AbstractStatusItem {
 
@@ -37,11 +41,6 @@ public final class FileSystemSyncItem extends AbstractStatusItem {
 
     public FileSystemSyncItem() {
         super("fileSystemSync", 40);
-    }
-
-    @Override
-    public @Nullable String getPlatformWidgetId() {
-        return "VfsRefresh";
     }
 
     @Override

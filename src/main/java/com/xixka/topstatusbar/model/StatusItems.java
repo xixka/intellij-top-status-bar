@@ -27,8 +27,8 @@ public final class StatusItems {
      * 会在下次启动一次性清除该项的遗留显式值（按 id 记账，幂等）。
      */
     private static final Set<String> DEFAULT_DISABLED_IDS = Set.of(
-            // commit 粒度：先落当前项目，文件同步见后续提交
-            "statusText");
+            "statusText",
+            "fileSystemSync");
 
     private static final Map<String, String> DISPLAY_NAMES = createDisplayNames();
 

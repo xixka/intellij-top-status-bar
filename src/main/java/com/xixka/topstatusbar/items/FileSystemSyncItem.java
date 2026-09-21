@@ -19,6 +19,9 @@ import java.util.List;
  * being processed and the timestamp of the last completed sync.
  * <p>
  * 显示开关由插件设置页「文件同步」逐项开关控制（自有项，全版本一致）。
+ * 2026-09-21 起默认关闭（第五轮「还是会显示」定案，见
+ * {@code StatusItems.DEFAULT_DISABLED_IDS}）：升级后不再显示，
+ * 设置页勾选「文件同步」可恢复。
  * <p>
  * 2026-09-21 教训：曾改为镜像平台 VfsRefresh 工厂（跟随原生「状态栏微件」
  * 菜单勾选），但 2026.1（IU-261.25134.95）实测该微件的菜单勾选落入

@@ -77,7 +77,7 @@ public final class TopStatusBarConfigurable implements Configurable {
         enabledCheckBox = new JBCheckBox("启用 Top Status Bar 状态项", settings.isEnabled());
         builder.addComponent(enabledCheckBox);
         builder.addVerticalGap(8);
-        builder.addComponent(new JBLabel("插件自有状态项（勾选即显示，取消即隐藏，全版本一致；当前项目默认关闭）："));
+        builder.addComponent(new JBLabel("插件自有状态项（勾选即显示，取消即隐藏，全版本一致；当前项目、文件同步默认关闭）："));
         ownItemCheckBoxes.clear();
         for (String itemId : OWN_ITEM_IDS) {
             JBCheckBox checkBox = new JBCheckBox(

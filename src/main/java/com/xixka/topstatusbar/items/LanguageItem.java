@@ -2,6 +2,8 @@ package com.xixka.topstatusbar.items;
 
 import com.intellij.lang.LangBundle;
 import com.intellij.lang.Language;
+import com.intellij.ide.plugins.PluginManagerConfigurable;
+import com.intellij.ide.util.ShowSettingsUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
@@ -125,6 +127,14 @@ public final class LanguageItem extends CurrentFileItem {
                 for (LanguageServiceWidgetItem item : otherItems) {
                     group.add(item.createWidgetAction());
                 }
+                // 原生末尾：分隔线 + 「更多语言…」（跳插件市场 Language Server 标签，
+                // MoreLanguagesAction 同款）
+                group.addSeparator();
+                group.add(DumbAwareAction.create(
+                        LangBundle.message("language.services.widget.more.languages"),
+                        e -> ShowSettingsUtil.getInstance().showSettingsDialog(
+                                effective, PluginManagerConfigurable.class,
+                                configurable -> configurable.navigateToMarketplace("/tag:\"Language Server\""))));
                 DebugLog.log("languageService onClick: 弹出语言服务菜单，当前文件项="
                         + currentFileItems.size() + ", 其他项=" + otherItems.size());
                 ListPopup popup = JBPopupFactory.getInstance()

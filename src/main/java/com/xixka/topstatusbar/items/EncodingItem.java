@@ -3,6 +3,7 @@ package com.xixka.topstatusbar.items;
 import com.intellij.ide.IdeBundle;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
@@ -56,14 +57,16 @@ public final class EncodingItem extends CurrentFileItem {
         if (file == null) {
             return;
         }
-        // 原生 EncodingPanel.createPopup 同款：动作 + EncodingPanelActions 扩展组
+        // 原生 EncodingPanel.createPopup 同款：动作 + EncodingPanelActions 扩展组。
+        // 2026.1 上 createPopup 内部（checkEnabled→FileDocumentManager.getDocument）
+        // 断言读访问（用户 2026-09-22 日志 RuntimeExceptionWithAttachments），
+        // EDT 上需包一层读动作——原生同样在读动作中构建弹窗。
         ChangeFileEncodingAction action = new ChangeFileEncodingAction();
         action.getTemplatePresentation().setText(
                 IdeBundle.messagePointer("action.presentation.EncodingPanel.text"));
         ActionGroup extraActions = (ActionGroup) ActionManager.getInstance().getAction("EncodingPanelActions");
-        // 顶栏在下方弹出（原生底栏上方弹的镜像）
-        ListPopup popup = action.createPopup(
-                EditorContext.popupContext(editor, source), extraActions);
+        ListPopup popup = ReadAction.compute(() -> action.createPopup(
+                EditorContext.popupContext(editor, source), extraActions));
         if (popup != null) {
             popup.show(new RelativePoint(source, new Point(0, source.getHeight())));
         }

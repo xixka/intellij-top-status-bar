@@ -71,8 +71,10 @@ intellijPlatform {
         // lsWidget 内部 API，收紧默认值会误杀发布，维持 2.0.1 判定口径
         failureLevel = listOf(VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS)
         ides {
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2024.1")
+            // 2.19.0 中 ide() 助手已改名 create()（源码核实：
+            // IntelliJPlatformExtension.PluginVerification.Ides 接口）
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.1")
             recommended()
         }
     }

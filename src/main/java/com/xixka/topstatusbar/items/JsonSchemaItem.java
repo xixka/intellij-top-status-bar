@@ -2,10 +2,17 @@ package com.xixka.topstatusbar.items;
 
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.awt.RelativePoint;
+import com.xixka.topstatusbar.DebugLog;
 import com.xixka.topstatusbar.model.StatusSeverity;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,5 +78,39 @@ public final class JsonSchemaItem extends CurrentFileItem {
         int slash = Math.max(schema.lastIndexOf('/'), schema.lastIndexOf('\\'));
         String label = slash >= 0 && slash < schema.length() - 1 ? schema.substring(slash + 1) : schema;
         return label.length() > 32 ? label.substring(0, 32) + "…" : label;
+    }
+
+    /**
+     * 原生点击行为（全项审计 2026-09-22 补齐）：原生 JsonSchemaStatusWidget
+     * .createPopup → JsonSchemaStatusPopup.createPopup(service, project, file,
+     * warning)——版本切换、远程 schema 下载、「显示 Schema」等全部平台实现。
+     * 该静态工厂为 package-private（241 与 master 均如此，包名未变），跨包
+     * 无法编译期引用，按键名反射调用（只读数据例外许可同族：构建平台自有
+     * 弹窗、不触碰 UI 内部结构；任何失败即静默不弹并留日志，行为回到无点击）。
+     */
+    @Override
+    public void onClick(@Nullable Project project, @NotNull JComponent source) {
+        Project effective = project != null ? project : project();
+        Editor editor = EditorContext.selectedEditor(effective);
+        VirtualFile file = EditorContext.virtualFile(editor);
+        if (effective == null || file == null) {
+            return;
+        }
+        try {
+            Class<?> serviceClass = Class.forName("com.jetbrains.jsonSchema.ide.JsonSchemaService");
+            Class<?> implClass = Class.forName("com.jetbrains.jsonSchema.ide.JsonSchemaService$Impl");
+            Object service = implClass.getMethod("get", Project.class).invoke(null, effective);
+            Class<?> popupClass = Class.forName("com.jetbrains.jsonSchema.widget.JsonSchemaStatusPopup");
+            java.lang.reflect.Method create = popupClass.getDeclaredMethod(
+                    "createPopup", serviceClass, Project.class, VirtualFile.class, boolean.class);
+            create.setAccessible(true);
+            ListPopup popup = (ListPopup) create.invoke(null, service, effective, file, false);
+            if (popup != null) {
+                popup.show(new RelativePoint(source, new Point(0, source.getHeight())));
+            }
+        } catch (Throwable t) {
+            DebugLog.warn("jsonSchema onClick: 原生弹窗不可用（" + t.getClass().getSimpleName()
+                    + "），保持无点击行为", t);
+        }
     }
 }

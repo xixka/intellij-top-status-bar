@@ -1,14 +1,17 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.icons.AllIcons;
-import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.PopupStep;
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep;
+import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.util.LineSeparator;
+import com.intellij.ui.UIBundle;
 import com.intellij.ui.awt.RelativePoint;
 import com.xixka.topstatusbar.DebugLog;
 import org.jetbrains.annotations.NotNull;
@@ -16,12 +19,17 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 /**
  * 行分隔符: LF / CRLF / CR, detected from the raw bytes of the current file.
- * Detection runs on a background thread to avoid blocking the EDT. Clicking
- * opens the same separator picker as the native widget.
+ * Detection runs on a background thread to avoid blocking the EDT.
+ * <p>
+ * 点击弹出与原生 LineSeparatorPanel 完全一致的动作组菜单：直接复用平台
+ * 注册的 {@code ChangeLineSeparators} Action 组（含每个分隔符的完整描述、
+ * 勾选态与写入逻辑），标题取 {@code UIBundle
+ * status.bar.line.separator.widget.name}（233→2026.x 源码核实，各版一致），
+ * 不再自拼条目列表。上下文与原生 EditorBasedStatusBarPopup 相同：
+ * 编辑器数据上下文优先，无编辑器时回退组件树上下文。
  */
 public final class LineSeparatorItem extends CurrentFileItem {
 
@@ -69,22 +77,31 @@ public final class LineSeparatorItem extends CurrentFileItem {
         if (file == null) {
             return;
         }
-        String current = file.getDetectedLineSeparator();
-        BaseListPopupStep<LineSeparator> step = new BaseListPopupStep<>("行分隔符", List.of(LineSeparator.values())) {
-            @Override
-            public Icon getIconFor(LineSeparator value) {
-                return value.getSeparatorString().equals(current) ? AllIcons.Actions.Checked : null;
-            }
+        AnAction group = ActionManager.getInstance().getAction("ChangeLineSeparators");
+        if (!(group instanceof ActionGroup)) {
+            DebugLog.warn("lineSeparator onClick: 平台未注册 ChangeLineSeparators 动作组，不弹菜单");
+            return;
+        }
+        // 原生 LineSeparatorPanel.createPopup 同款：动作组 + 标题 + SPEEDSEARCH
+        ListPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(
+                UIBundle.message("status.bar.line.separator.widget.name"),
+                (ActionGroup) group,
+                editorContext(editor, source),
+                JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
+                false);
+        // 原生底栏在组件上方弹出（Point(0,-h)）；顶栏镜像为下方，锚点同为左对齐
+        popup.show(new RelativePoint(source, new Point(0, source.getHeight())));
+    }
 
-            @Override
-            public PopupStep onChosen(LineSeparator selected, boolean finalChoice) {
-                LineSeparator choice = selected;
-                return doFinalStep(() -> ApplicationManager.getApplication().runWriteAction(
-                        () -> file.setDetectedLineSeparator(choice.getSeparatorString())));
-            }
-        };
-        JBPopupFactory.getInstance().createListPopup(step)
-                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
+    /**
+     * 与原生 {@code EditorBasedStatusBarPopup.context} 相同的解析顺序：
+     * 编辑器存在 → {@link EditorUtil#getEditorDataContext}（动作据此取
+     * VIRTUAL_FILE/PSI_FILE 等作用于当前文件）；否则回退组件树数据上下文。
+     */
+    static DataContext editorContext(@Nullable Editor editor, @NotNull JComponent source) {
+        return editor != null
+                ? EditorUtil.getEditorDataContext(editor)
+                : DataManager.getInstance().getDataContext(source);
     }
 
     private static String labelOf(@Nullable String separator) {

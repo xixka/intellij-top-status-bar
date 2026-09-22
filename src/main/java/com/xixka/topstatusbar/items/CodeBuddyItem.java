@@ -14,6 +14,13 @@ import javax.swing.*;
 /**
  * CodeBuddy: user-configurable status cell for the CodeBuddy AI assistant
  * integration. The label is configurable in the plugin settings.
+ * <p>
+ * 2026-09-22（用户定案）：CodeBuddy 是第三方插件（腾讯云 CodeBuddy）加进
+ * 状态栏的微件——本插件不处理任何第三方插件添加的微件，codeBuddy 默认关闭
+ * （{@code StatusItems.DEFAULT_DISABLED_IDS}，遗留显式值由
+ * {@code applyDefaultOffPolicy} 一次性清除），顶栏模板默认不显示。
+ * 项与 id 保留仅为已发布 id 不可删（AGENTS.md 硬约束）；设置页仍可勾选恢复。
+ * 第三方微件在原生底栏的显隐不受本插件影响（镜像开关只读原生存储）。
  */
 public final class CodeBuddyItem extends AbstractStatusItem {
 

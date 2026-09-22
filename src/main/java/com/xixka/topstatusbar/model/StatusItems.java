@@ -14,21 +14,26 @@ import java.util.Set;
 public final class StatusItems {
 
     /**
-     * 2026-09-21（第五轮「还是会显示」反馈后定案）：默认关闭的插件自有项。
+     * 默认关闭的插件自有项。
      * <p>
-     * 当前项目与文件系统同步两项连续多轮被用户要求不再显示（原生菜单
-     * 控制对自有项不可行——镜像已被 2026-09-20 前端化存储实证否决；
-     * 设置页控制可用但依赖用户逐项目手动关闭，且早期设置页 Apply 会把
-     * 整页勾选写成显式 true 压过任何默认值）。故把这两项的默认值改为
-     * 关闭：升级后不显示、无需任何操作；设置页仍可勾选恢复（写入
-     * itemEnabled 显式值，优先于默认值）。
+     * 2026-09-21（第五轮「还是会显示」反馈后定案）：当前项目与文件系统同步
+     * 两项连续多轮被用户要求不再显示（原生菜单控制对自有项不可行——镜像已被
+     * 2026-09-20 前端化存储实证否决；设置页控制可用但依赖用户逐项目手动
+     * 关闭，且早期设置页 Apply 会把整页勾选写成显式 true 压过任何默认值）。
+     * 故把这两项的默认值改为关闭：升级后不显示、无需任何操作；设置页仍可
+     * 勾选恢复（写入 itemEnabled 显式值，优先于默认值）。
+     * <p>
+     * 2026-09-22（CodeBuddy 定案）：CodeBuddy 为第三方插件（腾讯 CodeBuddy）
+     * 的微件——自有 CodeBuddy 项只是占位镜像，不处理任何第三方插件添加的
+     * 微件（用户原话）；codeBuddy 加入默认关闭，与上面两项同机制。
      * <p>
      * 新增 id 到此集合时，{@code TopStatusBarSettings.applyDefaultOffPolicy}
      * 会在下次启动一次性清除该项的遗留显式值（按 id 记账，幂等）。
      */
     private static final Set<String> DEFAULT_DISABLED_IDS = Set.of(
             "statusText",
-            "fileSystemSync");
+            "fileSystemSync",
+            "codeBuddy");
 
     private static final Map<String, String> DISPLAY_NAMES = createDisplayNames();
 

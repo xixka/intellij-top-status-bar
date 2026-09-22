@@ -3,7 +3,7 @@ package com.xixka.topstatusbar.items;
 import com.intellij.lang.LangBundle;
 import com.intellij.lang.Language;
 import com.intellij.ide.plugins.PluginManagerConfigurable;
-import com.intellij.ide.util.ShowSettingsUtil;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
@@ -28,6 +28,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.MissingResourceException;
 
 /**
  * 语言服务: display name of the language of the currently edited file.
@@ -127,14 +128,26 @@ public final class LanguageItem extends CurrentFileItem {
                 for (LanguageServiceWidgetItem item : otherItems) {
                     group.add(item.createWidgetAction());
                 }
-                // 原生末尾：分隔线 + 「更多语言…」（跳插件市场 Language Server 标签，
-                // MoreLanguagesAction 同款）
-                group.addSeparator();
-                group.add(DumbAwareAction.create(
-                        LangBundle.message("language.services.widget.more.languages"),
-                        e -> ShowSettingsUtil.getInstance().showSettingsDialog(
-                                effective, PluginManagerConfigurable.class,
-                                configurable -> configurable.navigateToMarketplace("/tag:\"Language Server\""))));
+                // 原生末尾：分隔线 + 「更多语言…」（跳插件市场 Language Server 标签）。
+                // master 原生为 MoreLanguagesAction 调 navigateToMarketplace，但该方法
+                // 241 编译基线不存在；按 241 原生 ShowPluginsWithSearchOptionAction 同款
+                // enableSearch("/tag:…")（241.14494 源码核实：自动切 Marketplace 标签）。
+                // 文案键 language.services.widget.more.languages 为 master 新增（241 无），
+                // 缺键时整条不显示——与 241 原生本无该条目一致（MissingResourceException
+                // 降级模式同缩进标题先例）
+                String moreLanguagesText = null;
+                try {
+                    moreLanguagesText = LangBundle.message("language.services.widget.more.languages");
+                } catch (MissingResourceException ignored) {
+                }
+                if (moreLanguagesText != null) {
+                    group.addSeparator();
+                    group.add(DumbAwareAction.create(
+                            moreLanguagesText,
+                            e -> ShowSettingsUtil.getInstance().showSettingsDialog(
+                                    effective, PluginManagerConfigurable.class,
+                                    configurable -> configurable.enableSearch("/tag:\"Language Server\""))));
+                }
                 DebugLog.log("languageService onClick: 弹出语言服务菜单，当前文件项="
                         + currentFileItems.size() + ", 其他项=" + otherItems.size());
                 ListPopup popup = JBPopupFactory.getInstance()

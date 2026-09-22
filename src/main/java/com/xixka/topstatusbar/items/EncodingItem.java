@@ -1,29 +1,27 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.icons.AllIcons;
-import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.ide.IdeBundle;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep;
-import com.intellij.openapi.vfs.CharsetToolkit;
+import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.encoding.EncodingManager;
-import com.intellij.openapi.ui.popup.PopupStep;
+import com.intellij.openapi.vfs.encoding.ChangeFileEncodingAction;
 import com.intellij.ui.awt.RelativePoint;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * 文件编码: charset of the currently edited file. Clicking opens the same
- * encoding picker as the native widget — the recently used encodings first,
- * then every available charset — and applies the choice to the file.
+ * 文件编码: charset of the currently edited file.
+ * <p>
+ * 点击弹出与原生 EncodingPanel 完全相同的编码菜单（233→master 源码核实）：
+ * 直接调用平台 {@link ChangeFileEncodingAction#createPopup}——「添加 BOM」、
+ * 常用编码（含异常图标）、「更多」子菜单与勾选态、切换写入全部是平台
+ * 原生实现，不再自拼 charset 列表。
  */
 public final class EncodingItem extends CurrentFileItem {
 
@@ -55,30 +53,19 @@ public final class EncodingItem extends CurrentFileItem {
         Project effective = project != null ? project : project();
         Editor editor = EditorContext.selectedEditor(effective);
         VirtualFile file = EditorContext.virtualFile(editor);
-        if (effective == null || file == null) {
+        if (file == null) {
             return;
         }
-        List<Charset> encodings = new ArrayList<>(EncodingManager.getInstance().getFavorites());
-        for (Charset charset : CharsetToolkit.getAvailableCharsets()) {
-            if (!encodings.contains(charset)) {
-                encodings.add(charset);
-            }
+        // 原生 EncodingPanel.createPopup 同款：动作 + EncodingPanelActions 扩展组
+        ChangeFileEncodingAction action = new ChangeFileEncodingAction();
+        action.getTemplatePresentation().setText(
+                IdeBundle.messagePointer("action.presentation.EncodingPanel.text"));
+        ActionGroup extraActions = (ActionGroup) ActionManager.getInstance().getAction("EncodingPanelActions");
+        // 顶栏在下方弹出（原生底栏上方弹的镜像）
+        ListPopup popup = action.createPopup(
+                EditorContext.popupContext(editor, source), extraActions);
+        if (popup != null) {
+            popup.show(new RelativePoint(source, new Point(0, source.getHeight())));
         }
-        Charset current = file.getCharset();
-        BaseListPopupStep<Charset> step = new BaseListPopupStep<>("文件编码", encodings) {
-            @Override
-            public Icon getIconFor(Charset value) {
-                return current.equals(value) ? AllIcons.Actions.Checked : null;
-            }
-
-            @Override
-            public PopupStep onChosen(Charset selected, boolean finalChoice) {
-                Charset choice = selected;
-                return doFinalStep(() -> ApplicationManager.getApplication().runWriteAction(
-                        () -> EncodingManager.getInstance().setEncoding(file, choice)));
-            }
-        };
-        JBPopupFactory.getInstance().createListPopup(step)
-                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
     }
 }

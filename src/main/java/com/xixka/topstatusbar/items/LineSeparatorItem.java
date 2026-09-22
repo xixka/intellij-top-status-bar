@@ -1,12 +1,9 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.ListPopup;
@@ -86,22 +83,11 @@ public final class LineSeparatorItem extends CurrentFileItem {
         ListPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(
                 UIBundle.message("status.bar.line.separator.widget.name"),
                 (ActionGroup) group,
-                editorContext(editor, source),
+                EditorContext.popupContext(editor, source),
                 JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
                 false);
         // 原生底栏在组件上方弹出（Point(0,-h)）；顶栏镜像为下方，锚点同为左对齐
         popup.show(new RelativePoint(source, new Point(0, source.getHeight())));
-    }
-
-    /**
-     * 与原生 {@code EditorBasedStatusBarPopup.context} 相同的解析顺序：
-     * 编辑器存在 → {@link EditorUtil#getEditorDataContext}（动作据此取
-     * VIRTUAL_FILE/PSI_FILE 等作用于当前文件）；否则回退组件树数据上下文。
-     */
-    static DataContext editorContext(@Nullable Editor editor, @NotNull JComponent source) {
-        return editor != null
-                ? EditorUtil.getEditorDataContext(editor)
-                : DataManager.getInstance().getDataContext(source);
     }
 
     private static String labelOf(@Nullable String separator) {

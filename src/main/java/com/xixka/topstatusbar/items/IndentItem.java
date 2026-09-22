@@ -1,17 +1,17 @@
 package com.xixka.topstatusbar.items;
 
 import com.intellij.application.options.CodeStyle;
-import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.application.ApplicationBundle;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleSettings;
-import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.psi.codeStyle.FileIndentOptionsProvider;
 import com.intellij.psi.codeStyle.IndentStatusBarUIContributor;
@@ -29,18 +29,35 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.MissingResourceException;
 
 /**
  * 缩进: tab / space indent effective for the current file.
- * Clicking opens the same indent menu as the native CodeStyleStatusBarWidget
- * (动作清单逐一对应平台 CodeStyleStatusBarWidget.getActions，241 GA 源码核实)。
  * <p>
- * 文本与工具提示复刻原生 CodeStyleStatusBarWidget.createWidgetState
- * （241 GA 源码核实）：有 UI contributor 时取 contributor.getStatusText /
- * getTooltip（缩进检测生效时即官方「4 个空格」样式），否则回退
- * IndentStatusBarUIContributor.getIndentInfo / createTooltip。
+ * 点击弹出与原生 CodeStyleStatusBarWidget 完全相同的缩进菜单
+ * （233/241/master 三版源码核实）：动作清单 = contributor 动作 +
+ * 「为 &lt;语言&gt; 配置缩进…」+ contributor 的禁用/显示全部动作；
+ * contributor 解析对齐 master（2026-09-22 修复）：编辑器瞬态设置
+ * {@link #EDITOR_CODE_STYLE_SETTINGS} 优先，modifier 无 contributor 时
+ * <em>回退</em> FileIndentOptionsProvider 路径——此前缺失该回退导致
+ * 2026.1 上菜单无标题、无「禁用缩进检测」（DetectableIndentSettingsModifier
+ * .getStatusBarUiContributor 恒返 null，原生同版靠回退拿到「缩进检测」
+ * contributor）。
+ * <p>
+ * 文本与工具提示复刻原生 createWidgetState：有 UI contributor 时取
+ * contributor.getStatusText / getTooltip（缩进检测生效时即官方
+ * 「4 个空格」样式），否则回退 IndentStatusBarUIContributor.
+ * getIndentInfo / createTooltip。
  */
 public final class IndentItem extends CurrentFileItem {
+
+    /**
+     * 与 {@code EditorImpl.CODE_STYLE_SETTINGS}（2026.x 起 2026.1 实测存在，
+     * 241 编译基线不存在该常量）同一个键——按键名取同一实例，避免编译期
+     * 依赖 platform-impl 的 EditorImpl；旧版本上无人写入该键，恒为 null。
+     */
+    private static final Key<CodeStyleSettings> EDITOR_CODE_STYLE_SETTINGS =
+            Key.create("editor.code.style.settings");
 
     public IndentItem() {
         super("indent", 65);
@@ -60,13 +77,12 @@ public final class IndentItem extends CurrentFileItem {
             setVisible(false);
             return;
         }
-        CodeStyleSettings settings = CodeStyleSettingsManager.getSettings(project);
-        var options = settings == null ? null : settings.getIndentOptionsByFile(psiFile);
+        CommonCodeStyleSettings.IndentOptions options = effectiveIndentOptions(editor, psiFile);
         if (options == null) {
             setVisible(false);
             return;
         }
-        CodeStyleStatusBarUIContributor contributor = findUiContributor(psiFile, options);
+        CodeStyleStatusBarUIContributor contributor = findUiContributor(editor, psiFile, options);
         String text;
         String tooltip;
         if (contributor != null) {
@@ -82,11 +98,13 @@ public final class IndentItem extends CurrentFileItem {
     }
 
     /**
-     * Mirrors the platform CodeStyleStatusBarWidget.createPopup (241 GA
-     * sources): contributor actions first, then "为 &lt;语言&gt; 配置缩进…",
+     * Mirrors the platform CodeStyleStatusBarWidget.createPopup (233/241/
+     * master sources): contributor actions first, then "为 &lt;语言&gt; 配置缩进…",
      * then the contributor's disable / show-all actions; the popup title is
-     * the contributor's action group title (e.g. “缩进检测” for the indent
-     * detection contributor shown in the user's screenshot).
+     * the contributor's action group title (e.g. “缩进检测”), falling back to
+     * the language name title when no contributor answers (master behaviour;
+     * 241 and older have no such key and no title either — mirrored by
+     * catching {@link MissingResourceException}).
      */
     @Override
     public void onClick(@Nullable Project project, @NotNull JComponent source) {
@@ -97,8 +115,12 @@ public final class IndentItem extends CurrentFileItem {
             DebugLog.log("indent onClick: 无当前文件，不弹缩进菜单");
             return;
         }
-        CommonCodeStyleSettings.IndentOptions indentOptions = CodeStyle.getIndentOptions(psiFile);
-        CodeStyleStatusBarUIContributor contributor = findUiContributor(psiFile, indentOptions);
+        CommonCodeStyleSettings.IndentOptions indentOptions = effectiveIndentOptions(editor, psiFile);
+        if (indentOptions == null) {
+            DebugLog.log("indent onClick: 无缩进选项，不弹缩进菜单");
+            return;
+        }
+        CodeStyleStatusBarUIContributor contributor = findUiContributor(editor, psiFile, indentOptions);
 
         List<AnAction> actions = new ArrayList<>();
         if (contributor != null) {
@@ -126,7 +148,9 @@ public final class IndentItem extends CurrentFileItem {
             DebugLog.log("indent onClick: 无可用动作，不弹缩进菜单");
             return;
         }
-        String title = contributor == null ? null : contributor.getActionGroupTitle();
+        String title = contributor == null
+                ? languageFallbackTitle(psiFile)
+                : contributor.getActionGroupTitle();
         ActionGroup group = new ActionGroup() {
             @Override
             public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
@@ -137,27 +161,79 @@ public final class IndentItem extends CurrentFileItem {
                 + ", contributor=" + (contributor == null ? "无" : contributor.getClass().getSimpleName()));
         JBPopupFactory.getInstance()
                 .createActionGroupPopup(title, group,
-                        DataManager.getInstance().getDataContext(source),
+                        EditorContext.popupContext(editor, source),
                         JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false)
-                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
+                .show(new RelativePoint(source, new Point(0, source.getHeight())));
     }
 
     /**
-     * Same resolution as CodeStyleStatusBarWidget: a transient-settings
-     * modifier wins; otherwise the provider recorded on the indent options;
-     * otherwise the first EP provider whose contributor has actions for the
-     * file.
+     * 语言名回退标题（master 源码）：{@code ApplicationBundle.message(
+     * "code.style.language.settings.indent.provider", language.displayName)}。
+     * 241 及更早无该键（原生同版 contributor 为空时也不设标题），按
+     * {@link MissingResourceException} 退化为 null——两种平台版本都与
+     * 原生行为一致。
+     */
+    @Nullable
+    private static String languageFallbackTitle(@NotNull PsiFile psiFile) {
+        try {
+            return ApplicationBundle.message("code.style.language.settings.indent.provider",
+                    psiFile.getLanguage().getDisplayName());
+        } catch (MissingResourceException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Master getWidgetState 同款 settings 解析：编辑器瞬态设置优先（键同
+     * EditorImpl.CODE_STYLE_SETTINGS），否则 CodeStyle.getSettings(psiFile)；
+     * 缩进选项从该 settings 上取（瞬态生效时即检测出的缩进）。
+     */
+    @Nullable
+    private static CommonCodeStyleSettings.IndentOptions effectiveIndentOptions(
+            @Nullable Editor editor, @NotNull PsiFile psiFile) {
+        CodeStyleSettings settings = effectiveSettings(editor, psiFile);
+        return settings == null ? null : settings.getIndentOptionsByFile(psiFile);
+    }
+
+    @Nullable
+    private static CodeStyleSettings effectiveSettings(
+            @Nullable Editor editor, @NotNull PsiFile psiFile) {
+        CodeStyleSettings settings = editor == null ? null : editor.getUserData(EDITOR_CODE_STYLE_SETTINGS);
+        return settings != null ? settings : CodeStyle.getSettings(psiFile);
+    }
+
+    /**
+     * Same resolution as the platform widget (master sources, 2026-09-22
+     * fix): a transient-settings modifier's contributor wins when present;
+     * <em>otherwise</em> fall through to the provider path — the recorded
+     * provider on the indent options, else the first EP provider whose
+     * contributor has actions for the file. The missing fall-through was why
+     * 2026.1 showed an untitled menu without「禁用缩进检测」.
      */
     @Nullable
     private static CodeStyleStatusBarUIContributor findUiContributor(
-            @NotNull PsiFile psiFile, @NotNull CommonCodeStyleSettings.IndentOptions indentOptions) {
-        CodeStyleSettings settings = CodeStyle.getSettings(psiFile);
+            @Nullable Editor editor, @NotNull PsiFile psiFile,
+            @NotNull CommonCodeStyleSettings.IndentOptions indentOptions) {
+        CodeStyleSettings settings = effectiveSettings(editor, psiFile);
         if (settings instanceof TransientCodeStyleSettings) {
             TransientCodeStyleSettings transientSettings = (TransientCodeStyleSettings) settings;
             CodeStyleSettingsModifier modifier = transientSettings.getModifier();
-            return modifier == null ? null : modifier.getStatusBarUiContributor(transientSettings);
+            if (modifier != null) {
+                CodeStyleStatusBarUIContributor fromModifier =
+                        modifier.getStatusBarUiContributor(transientSettings);
+                if (fromModifier != null) {
+                    return fromModifier;
+                }
+            }
+            // fall through：modifier 无 contributor（2026.1 缩进检测即如此）
+            // → 走 provider 路径，与原生 master getWidgetState 一致
         }
-        VirtualFile file = psiFile.getVirtualFile();
+        return findProviderContributor(psiFile.getVirtualFile(), indentOptions);
+    }
+
+    @Nullable
+    private static CodeStyleStatusBarUIContributor findProviderContributor(
+            @Nullable VirtualFile file, @NotNull CommonCodeStyleSettings.IndentOptions indentOptions) {
         FileIndentOptionsProvider provider = indentOptions.getFileIndentOptionsProvider();
         if (provider == null && file != null) {
             for (FileIndentOptionsProvider candidate : FileIndentOptionsProvider.EP_NAME.getExtensionList()) {

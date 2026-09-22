@@ -78,5 +78,6 @@
 
 - 新增插件自有状态项：实现 `model/StatusItem`（或继承 `items/CurrentFileItem` / `model/AbstractStatusItem`），在 `TopStatusBarManager.createItems()` 与 `model/StatusItems.java` 登记即可；`getPlatformWidgetId` 保持返回 null → 显隐由插件设置页控制，在 `TopStatusBarConfigurable.OWN_ITEM_IDS` 加上新 id 即出现在设置页
 - 新增镜像原生微件的状态项：同上登记，但 `getPlatformWidgetId` 返回对应平台工厂 id（如 Position/Encoding/git），显隐跟随原生「状态栏微件」菜单
+- **点击菜单必须复用平台原生实现，不要自拼列表**（2026-09-22 定案，自拼=视觉与行为双重漂移）：行分隔符=平台注册的 `ChangeLineSeparators` 动作组；文件编码=`ChangeFileEncodingAction.createPopup(context, "EncodingPanelActions")`；缩进=contributor 解析链（含编辑器瞬态设置回退，对齐 master 源码）；内存悬停详情=原生 HTML 模板同构表格。菜单数据上下文统一用 `EditorContext.popupContext`（编辑器存在时 `EditorUtil.getEditorDataContext`，原生 `EditorBasedStatusBarPopup.context` 同款）
 - **不要**为插件自有项注册 `statusBarWidgetFactory`：2026.x 会为每个经典工厂生成第二套独立存储的菜单条目（重复菜单+开关失灵的根因，见上文排障）
 - 单元格视觉在 `ui/StatusCell.java`，宽度自适应隐藏策略在 `TopStatusBarPanel.java`，逐项显隐决策在 `TopStatusBarManager.isDisplayEnabled`

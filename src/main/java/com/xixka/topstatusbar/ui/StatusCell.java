@@ -133,6 +133,8 @@ public final class StatusCell extends JComponent {
                 g2.setColor(pressed ? PRESSED_BACKGROUND : HOVER_BACKGROUND);
                 g2.fill(new RoundRectangle2D.Float(0f, 0f, getWidth() - 1f, getHeight() - 1f, arc, arc));
             }
+            // Optional item-specific background (e.g. the memory gauge)
+            item.paintCellBackground(g2, getWidth(), getHeight());
             Icon icon = item.getIcon();
             String text = item.getText();
             FontMetrics metrics = g2.getFontMetrics();

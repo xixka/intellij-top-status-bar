@@ -83,4 +83,12 @@ public interface StatusItem {
      */
     default void onClick(@Nullable Project project, @NotNull JComponent source) {
     }
+
+    /**
+     * Optional background painting below the hover background and icon/text,
+     * on the EDT. Native counterpart: {@code MemoryUsagePanelImpl.paintComponent}
+     * (used by the memory indicator gauge: allocated bar + used bar).
+     */
+    default void paintCellBackground(@NotNull java.awt.Graphics2D g, int width, int height) {
+    }
 }

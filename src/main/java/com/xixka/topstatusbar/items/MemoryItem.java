@@ -8,7 +8,6 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.UIBundle;
 import com.intellij.util.io.DirectByteBufferAllocator;
 import com.intellij.util.io.IOUtil;
-import com.intellij.util.ui.UIUtil;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -159,8 +158,13 @@ public final class MemoryItem extends AbstractStatusItem {
     }
 
     /**
-     * 原生 MemoryUsagePanelImpl.paintComponent 仪表条：面板底色、已分配条、
-     * 已用条（Islands 主题的裁切为内部 API，此处用经典满高画法）。
+     * 原生 MemoryUsagePanelImpl.paintComponent 仪表条：已分配条 + 已用条
+     * （Islands 主题的裁切为内部 API，此处用经典满高画法）。
+     * <p>
+     * 不画原生的 panelBackground 底色：原生组件背景为 null（透明），
+     * 填 panelBackground 只是给圆角条"擦底"——它等于状态栏背景；而在顶栏
+     * 上该色与顶栏背景不同，会形成一条突兀的色带（2026-09-22 用户截图
+     * 实证）。去掉后单元格背景保持透明，与顶栏融为一体，仅仪表条本身可见。
      */
     @Override
     public void paintCellBackground(@NotNull Graphics2D g, int width, int height) {
@@ -170,8 +174,6 @@ public final class MemoryItem extends AbstractStatusItem {
         }
         int usedLength = (int) (width * gaugeUsed / max);
         int allocatedLength = (int) (width * gaugeAllocated / max);
-        g.setColor(UIUtil.getPanelBackground());
-        g.fillRect(0, 0, width, height);
         g.setColor(ALLOCATED_COLOR);
         g.fillRect(0, 0, Math.min(allocatedLength, width), height);
         g.setColor(USED_COLOR);

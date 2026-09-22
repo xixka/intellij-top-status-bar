@@ -1,12 +1,7 @@
 package com.xixka.topstatusbar.items;
 
-import com.intellij.ide.DataManager;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.ide.util.EditorGotoLineNumberDialog;
+import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.LogicalPosition;
@@ -15,7 +10,10 @@ import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
+import com.intellij.openapi.fileEditor.ex.IdeDocumentHistory;
+import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.UIBundle;
 import com.intellij.util.messages.MessageBusConnection;
 import com.xixka.topstatusbar.model.AbstractStatusItem;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +26,10 @@ import javax.swing.*;
  * {@link EditorEventMulticaster}.
  */
 public final class CaretPositionItem extends AbstractStatusItem {
+
+    /** 原生 PositionPanel 常量：超过该字符数的选区同步计数降级为 "..."。 */
+    private static final int CHAR_COUNT_SYNC_LIMIT = 500_000;
+    private static final String CHAR_COUNT_UNKNOWN = "...";
 
     private final CaretListener caretListener = new CaretListener() {
         @Override
@@ -107,28 +109,41 @@ public final class CaretPositionItem extends AbstractStatusItem {
             setVisible(false);
             return;
         }
-        // Same format as the native position widget: "line:column" for a
-        // single caret, the caret count when several carets are active, and
-        // the selected character count appended while a selection exists.
+        // 与原生 PositionPanel.getPositionText 相同的格式：单光标 "line:column"，
+        // 多光标 "N carets"，有选区时追加 "(N chars)"（UIBundle 键、半角括号、
+        // codePointCount；超过 500k 同步上限时先显示 "..."，下次刷新替换）。
         LogicalPosition position = editor.getCaretModel().getLogicalPosition();
         int caretCount = editor.getCaretModel().getCaretCount();
         String text;
         if (caretCount > 1) {
-            text = caretCount + " carets";
+            text = UIBundle.message("position.panel.caret.count", caretCount);
         } else {
-            text = (position.line + 1) + ":" + (position.column + 1);
+            StringBuilder message = new StringBuilder();
+            message.append(position.line + 1).append(':').append(position.column + 1);
             int selectionStart = editor.getCaretModel().getCurrentCaret().getSelectionStart();
             int selectionEnd = editor.getCaretModel().getCurrentCaret().getSelectionEnd();
             if (selectionEnd > selectionStart) {
-                text += "（" + (selectionEnd - selectionStart) + " 字符）";
+                message.append(" (");
+                if (selectionEnd - selectionStart < CHAR_COUNT_SYNC_LIMIT) {
+                    int charCount = Character.codePointCount(
+                            editor.getDocument().getImmutableCharSequence(), selectionStart, selectionEnd);
+                    message.append(charCount).append(' ')
+                            .append(UIBundle.message("position.panel.selected.chars.count", charCount));
+                } else {
+                    message.append(CHAR_COUNT_UNKNOWN).append(' ')
+                            .append(UIBundle.message("position.panel.selected.chars.count", 2));
+                }
+                message.append(')');
             }
+            text = message.toString();
         }
         setText(text);
-        String tooltip = "跳转到行/列（当前 " + text + "）";
-        if (caretCount > 1) {
-            tooltip += "（" + caretCount + " 个光标）";
-        }
-        setTooltip(tooltip);
+        // 与原生一致的悬停提示：「转到行」标题 + GotoLine 快捷键（2026-09-22
+        // 用户截图：两行式，标题加粗）。无快捷键时仅显示标题。
+        String shortcut = KeymapUtil.getFirstKeyboardShortcutText("GotoLine");
+        setTooltip(shortcut.isEmpty()
+                ? UIBundle.message("go.to.line.command.name")
+                : "<html><b>" + UIBundle.message("go.to.line.command.name") + "</b><br>" + shortcut + "</html>");
         setVisible(true);
     }
 
@@ -139,30 +154,16 @@ public final class CaretPositionItem extends AbstractStatusItem {
         if (effective == null || editor == null) {
             return;
         }
-        // Same behavior as the native position widget: invoke the platform
-        // "Go to Line/Column" action on the current editor.
-        AnAction gotoLine = ActionManager.getInstance().getAction("GotoLine");
-        if (gotoLine == null) {
-            return;
-        }
-        DataContext base = DataManager.getInstance().getDataContext(source);
-        DataContext context = dataId -> {
-            if (CommonDataKeys.PROJECT.is(dataId)) {
-                return effective;
-            }
-            if (CommonDataKeys.EDITOR.is(dataId)) {
-                return editor;
-            }
-            if (CommonDataKeys.VIRTUAL_FILE.is(dataId)) {
-                return EditorContext.virtualFile(editor);
-            }
-            return base.getData(dataId);
-        };
-        AnActionEvent event = AnActionEvent.createFromAnAction(
-                gotoLine, null, ActionPlaces.EDITOR_TOOLBAR, context);
-        gotoLine.update(event);
-        if (event.getPresentation().isEnabled()) {
-            gotoLine.actionPerformed(event);
-        }
+        // 原生 PositionPanel.getClickConsumer 同款（master 源码核实）：
+        // 命令包装中打开 EditorGotoLineNumberDialog 并将本次命令计入导航历史。
+        CommandProcessor.getInstance().executeCommand(
+                effective,
+                () -> {
+                    EditorGotoLineNumberDialog dialog = new EditorGotoLineNumberDialog(effective, editor);
+                    dialog.show();
+                    IdeDocumentHistory.getInstance(effective).includeCurrentCommandAsNavigation();
+                },
+                UIBundle.message("go.to.line.command.name"),
+                null);
     }
 }

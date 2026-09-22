@@ -210,9 +210,11 @@ public final class MemoryItem extends AbstractStatusItem {
         }
         if (osStats != null) {
             section(html, "操作系统提供");
-            boldValueRow(html, "RAM 中的文件映射:", osStats[0] + "M");
-            boldValueRow(html, "总计1 (匿名 RAM):", osStats[1] + "M");
-            boldValueRow(html, "总计2 (总计1+交换):", osStats[2] + "M");
+            // MemoryStats 字段单位为字节（pmu.kt javadoc 核实），必须 toMb——
+            // 2026-09-22 用户日志实证漏除时显示 284200960M（=271MB 的字节数）
+            boldValueRow(html, "RAM 中的文件映射:", toMb(osStats[0]) + "M");
+            boldValueRow(html, "总计1 (匿名 RAM):", toMb(osStats[1]) + "M");
+            boldValueRow(html, "总计2 (总计1+交换):", toMb(osStats[2]) + "M");
         }
         html.append("</table></html>");
         return html.toString();

@@ -1,83 +1,89 @@
-# intellij-top-status-bar
+# Top Status Bar
 
 [![Build](https://github.com/xixka/intellij-top-status-bar/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/xixka/intellij-top-status-bar/actions/workflows/ci.yml)
+[![Release](https://github.com/xixka/intellij-top-status-bar/actions/workflows/release.yml/badge.svg)](https://github.com/xixka/intellij-top-status-bar/actions/workflows/release.yml)
 
-一个 IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action System 的自定义组件（`CustomComponentAction`），通过 IDEA 原生「自定义工具栏」机制添加到 Main Toolbar 搜索按钮左侧。
+English | [简体中文](README.zh-CN.md)
 
-## 设计原则
+An IntelliJ IDEA plugin that renders a compact, New UI-style status bar as an official Action System custom component (`CustomComponentAction`), added to the Main Toolbar to the left of the search icon via IDEA's native toolbar customization.
 
-- 不创建第二行 Toolbar，不修改 IDEA 内部 UI，不使用反射
-- 整个状态栏是一个可添加到 Main Toolbar 的自定义动作（`Top Status Bar`，CustomComponentAction），内部横向渲染状态项，而不是一堆普通 Toolbar 按钮
-- 只使用 IntelliJ 官方 API（Action System、Message Bus topics、`CustomComponentAction`）
-- UI 遵循 JetBrains New UI 惯例：紧凑、Icon + Text、圆角 Hover、Light/Dark 自适应、状态异常时才着色、窗口宽度不足自动隐藏低优先级项、不增加工具栏高度
+## Design principles
 
-## 状态项（按显示顺序）
+- No second toolbar row, no modification of IDE internals, no reflection into internal UI classes
+- The whole bar is a single custom action (`Top Status Bar`, a `CustomComponentAction`) that renders status items horizontally, not a pile of plain toolbar buttons
+- Only official IntelliJ APIs: Action System, Message Bus topics, `CustomComponentAction`
+- UI follows JetBrains New UI conventions: compact, icon + text, rounded hover, light/dark adaptive, colored only on abnormal status, low-priority items auto-hide on narrow windows, never increases toolbar height
 
-当前项目（默认关闭）· 文件同步（默认关闭）· CodeBuddy · 聚合器 · 网络位置 · 默认部署服务器 · 行列号 · 语言服务 · 行分隔符 · 文件编码 · 省电模式 · 编辑器选择模式 · 缩进 · JSON 架构 · Git 分支 · 只读特性 · 内存指示器
+## Status items (display order)
 
-> 「当前项目」（顶栏显示项目名，悬停提示「当前项目：xxx」）与「文件同步」（顶栏显示「已同步 HH:mm:ss」，悬停提示「文件系统同步：xxx」）自 2026-09-21 起默认关闭：升级后不显示、无需任何操作；需要时在插件设置页勾选「当前项目」/「文件同步」即可恢复。
+Current project (off by default) · File sync (off by default) · CodeBuddy (off by default) · Aggregator · Network location · Deploy server · Line:column · Language service · Line separator · File encoding · Power save mode · Editor selection mode · Indent · JSON schema · Git branch · Read-only attribute · Memory indicator
 
-实时更新机制：光标移动（行列号）、文件切换（编码/行分隔符/缩进/JSON Schema/语言）、`GIT_REPO_CHANGE`（分支）、`PowerSaveMode.TOPIC`（省电模式）、后台定时（内存 2s、网络 10s、通用刷新 5s）、`VFS_CHANGES`（文件系统同步）。
+> "Current project" (shows the project name, hover: "Current project: …"), "File sync" (shows "Synced HH:mm:ss", hover: file system sync details) and "CodeBuddy" have been off by default since 2026-09-21/09-22: they stay hidden after upgrading, no action needed. Re-enable them on the plugin settings page if wanted.
 
-## 安装并添加到 Main Toolbar
+> Third-party widgets added by other plugins (e.g. Tencent CodeBuddy) are not handled by this plugin — its own CodeBuddy cell is a configurable placeholder, hidden by default.
 
-1. 获取插件 zip：从 GitHub Actions 构建产物下载（`build/distributions/*.zip`），或本地执行 `./gradlew buildPlugin`
-2. 安装：`Settings → Plugins → ⚙ → Install Plugin from Disk...` 选择 zip
-3. 打开 `Settings → Appearance & Behavior → Menus and Toolbars`
-4. 选中 Main Toolbar 中的分组（如 *Main Toolbar Right*）→ `+` → `Add Action...`
-5. 在弹出的可用动作树中搜索 **Top Status Bar** → 确定
-6. 将其拖拽到搜索按钮左侧，得到目标布局：
+Live updates: caret movement (line:column), file switching (encoding / line separator / indent / JSON schema / language), `GIT_REPO_CHANGE` (branch), `PowerSaveMode.TOPIC` (power save mode), background timers (memory 2s, network 10s, general refresh 5s), `VFS_CHANGES` (file system sync).
+
+## Install and add to the Main Toolbar
+
+1. Get the plugin zip: download an official release from [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases) (or the latest `dev` pre-release), or install from JetBrains Marketplace once listed.
+2. Install: `Settings → Plugins → ⚙ → Install Plugin from Disk…` and pick the zip (Marketplace installs skip this step).
+3. Open `Settings → Appearance & Behavior → Menus and Toolbars`
+4. Select a Main Toolbar group (e.g. *Main Toolbar Right*) → `+` → `Add Action…`
+5. Search for **Top Status Bar** in the action tree → OK
+6. Drag it left of the search icon for the target layout:
 
 ```
-[项目/Git] [Top Status Bar] [搜索] [其他工具]
+[Project/Git] [Top Status Bar] [Search] [Other tools]
 ```
 
-> 插件默认不自动把自己塞进 Main Toolbar，完全走 IDEA 原生自定义机制，尊重用户自己的布局。
+> The plugin never inserts itself into the Main Toolbar automatically — it goes through IDEA's native customization only, respecting your own layout.
 
-## 设置
+## Settings
 
-`Settings → Appearance & Behavior → Top Status Bar`：
+`Settings → Appearance & Behavior → Top Status Bar`:
 
-- 总开关（关闭 = 顶栏不装载任何状态项）
-- 插件自有 6 项逐项开关：当前项目、文件同步、CodeBuddy、聚合器、网络位置、默认部署服务器——勾选即显示、取消即隐藏，**在任何 IDEA 版本上行为一致**。其中**当前项目、文件同步默认关闭**（2026-09-21 起），早期构建整页保存留下的显式勾选会在首次启动新版时被一次性清除、按新默认隐藏，之后在设置页重新勾选的值不会再被触碰
-- 默认部署服务器（显示为 `部署: xxx`，点击单元格可跳回设置）
-- CodeBuddy 标签（留空则隐藏该项）
+- Master switch (off = the bar loads no status items)
+- Per-item toggles for the plugin's own items: Current project, File sync, CodeBuddy, Aggregator, Network location, Deploy server — check to show, uncheck to hide, **behaving identically on every IDEA version**. *Current project*, *File sync* and *CodeBuddy* are **off by default** (2026-09-21/09-22); explicit checkboxes persisted by early builds are cleared once on first launch of the new version, and any value you set afterwards is never touched again
+- Deploy server (shown as `Deploy: …`; clicking the cell jumps back to settings)
+- CodeBuddy label (empty = the item stays hidden)
 
-**镜像平台原生微件的 11 项**（行列号、行分隔符、文件编码、省电模式、缩进、JSON 架构、Git 分支、只读特性、内存指示器、语言服务、编辑器选择模式）由原生菜单
-`View → 外观 → 状态栏微件`（或右键底部状态栏）勾选控制：菜单里勾选哪些，顶栏就显示哪些，勾选动作即时生效（动作级监听），另有约 5 秒轮询兜底——与底部状态栏的原生行为同源同义。
+**The 11 items mirroring built-in widgets** (line:column, line separator, file encoding, power save mode, indent, JSON schema, Git branch, read-only attribute, memory indicator, language service, editor selection mode) follow the native menu
+`View → Appearance → Status Bar Widgets` (or right-click the bottom status bar): whatever is checked there shows on the top bar, with immediate effect (action-level listener) plus a ~5s polling fallback — the same source of truth as the native bottom status bar.
 
-> 旧版本（曾注册原生微件工厂）里对自有 6 项做过的取消勾选，会在首次启动新版时自动迁移到插件设置页（仅迁移显式关闭记录，设置页已做过的选择优先），避免升级后已隐藏的项重新出现。
+> Explicit hides made in older versions (which registered native widget factories) are migrated to the plugin settings page on first launch (explicit-off records only; settings-page choices take priority), so items hidden before an upgrade do not reappear.
 
-> 该菜单的勾选状态持久化在 `ide.general.xml`，插件读取的是这份开关状态（与菜单复选框同源），而非底部状态栏是否实际承载对应微件——2026.x 前端化后多数原生微件已不挂底栏，按实例判断会误隐藏已勾选项。
+> The menu's checkbox state persists in `ide.general.xml`; the plugin reads that same switch state (same source as the menu), not whether the bottom bar actually hosts a widget — after the 2026.x frontend migration most native widgets no longer mount on the bottom bar, so instance-based checks would wrongly hide checked items.
 
-### 版本兼容（鲁棒性设计）
+### Version compatibility (robust by design)
 
-| 版本 | 自有 6 项 | 镜像 11 项 |
+| Version | Plugin-specific items | Mirrored items |
 |---|---|---|
-| 2023.3（233）— 2026.x+（299.*） | 插件设置页（无平台依赖，全版本一致） | 原生「状态栏微件」菜单（该菜单在 233/241/243/master 均存在，已对照源码核实） |
+| 2023.3 (233) — 2026.x+ (299.*) | Plugin settings page (no platform dependency, identical on all versions) | Native *Status Bar Widgets* menu (verified present in 233/241/243/master sources) |
 
-插件不注册任何 `statusBarWidgetFactory`，不依赖 2026.x 前端状态栏桥接、不依赖底栏微件实例、不依赖特定版本内部行为。唯一涉及的平台内部 API 是读取菜单开关的 `StatusBarWidgetSettings`（233.14475/241.14494/262 三版 FQN 与签名一致，已核实），且全部读取都有 fail-open 保护：即使未来版本移除该 API，镜像项保持可见、自有项仍可正常控制，插件不会崩溃。
+The plugin registers no `statusBarWidgetFactory`, and depends neither on the 2026.x frontend status bar bridge, nor on bottom-bar widget instances, nor on version-specific internal behavior. The only platform-internal API used is read-only `StatusBarWidgetSettings` for menu switches (FQN and signature verified identical across 233.14475/241.14494/262), and every read is fail-open protected: should a future version remove it, mirrored items stay visible, own items remain controllable, nothing crashes.
 
-## 工程与构建
+## Project & build
 
 - Gradle 8.8 + IntelliJ Platform Gradle Plugin 2.0.1
-- 目标平台：IntelliJ IDEA Community 2024.1（`sinceBuild=233`，兼容 2023.3+；依赖捆绑的 Git 插件 `Git4Idea`）
-- Java 17，源码编码 UTF-8
-- CI（GitHub Actions）执行 `./gradlew buildPlugin -PbuildVersion=0.1.<run_number>` 完成编译与打包验证，每次构建版本号自动递增
-- master 每次 CI 通过后自动发布 dev 预构建到 [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases)（tag `dev`，文件名带版本号），可直接下载安装
-- 本地调试沙盒：`./gradlew runIde`；正式发布构建：`./gradlew buildPlugin -PbuildVersion=x.y.z`
+- Target: IntelliJ IDEA Community 2024.1 (`sinceBuild=233`, compatible with 2023.3+; depends on the bundled `Git4Idea` plugin)
+- Java 17, UTF-8 sources
+- CI (GitHub Actions) runs `./gradlew buildPlugin` on every push; each build gets an auto-incremented version (`0.1.<run_number>`)
+- Every green master build publishes a `dev` pre-release to [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases) (tag `dev`, versioned zip)
+- **Official releases are published from CI** (since 2026-09-22): pushing a tag `v*` (e.g. `v1.0.0`) builds that commit with the explicit version, runs the IntelliJ **Plugin Verifier** (2023.3 / 2024.1 / latest recommended), and publishes a stable GitHub Release. If the `MARKETPLACE_PUBLISH_TOKEN` repository secret is set, the same build is uploaded to JetBrains Marketplace automatically.
+- Local sandbox: `./gradlew runIde`; local release build: `./gradlew buildPlugin -PbuildVersion=x.y.z`
 
-## 升级与排障
+## Upgrading & troubleshooting
 
-- **安装 dev 构建后请确认版本号**：`Settings → Plugins → Top Status Bar` 显示的版本应与 Release 页面 asset 文件名一致；若仍是旧版本号，说明 IDE 未把它当作升级——先完全卸载旧版并重启，再 Install Plugin from Disk。
-- **原生菜单出现重复条目（同名两行，勾选状态还可能不一致）**：两种来源。① 安装了两个版本的插件副本（Settings → Plugins 搜索 "Top Status Bar" 出现多条）——新版本会在启动时检测到并弹气球通知，按提示禁用/卸载旧副本并重启即可；② 装的是 2026-09-20 之前的旧构建（那时插件还注册原生微件工厂，2026.x 会为每个工厂再生成一套独立存储的菜单条目）——升级到最新 dev 构建后，插件自有条目不再出现在原生菜单中，重复条目自然消失，自有 6 项改由插件设置页控制。
-- **Add Action 树中出现两个条目 / 工具栏出现幽灵条目**：说明 IDE 内仍残留旧构建（历史版本曾同时注册 `Top Status Bar` 组与 `Top Status Bar Widget` 动作，新版只保留单一动作 `Top Status Bar`，显示文本由平台按动作 id 实时解析）。处理：卸载插件并重启 → 安装最新 dev 构建 → 在 `Settings → Appearance & Behavior → Menus and Toolbars` 中删除 Main Toolbar 里的 `TopStatusBar` / `Top Status Bar Widget` 残留条目 → 重新 Add Action 添加 `Top Status Bar`。
-- **排查顶栏不显示 / 项丢失 / 不刷新**：插件在关键链路（管理器装载、陈旧工厂检测、面板绑定项目、单元格渲染与自适应隐藏、状态项状态迁移、Git 异步解析、设置页应用）持续输出调试日志，全部以 `TSB ` 前缀写入 IDE 日志。获取方式：菜单 `Help → Show Log in Explorer/Finder` 打开日志目录，找到 `idea.log`，检索 `TSB`。日志只在状态实际变化或出现异常时写入（窗口拖拽 resize 不会刷屏），把出现问题前后时间段的日志发给维护者即可定位。
+- **After installing, verify the version number**: `Settings → Plugins → Top Status Bar` must show the version matching the release asset filename; if it still shows an old number, the IDE did not treat it as an upgrade — fully uninstall the old version, restart, then *Install Plugin from Disk* again.
+- **Duplicate entries in the native Status Bar Widgets menu (same name twice, possibly with different checkbox states)**: two possible causes. (1) Two plugin copies installed (search "Top Status Bar" in `Settings → Plugins` shows multiple entries) — recent builds detect this at startup and show a balloon notification; disable/uninstall the stale copy and restart. (2) A pre-2026-09-20 build (which still registered native widget factories — 2026.x generates a second, separately-stored menu entry per factory) — after upgrading to a recent build the plugin-specific entries disappear from the native menu and the duplicates vanish; the plugin's own items move to its settings page.
+- **Two entries in the Add Action tree / ghost entries on the toolbar**: an old build is still resident (historic versions registered both a `Top Status Bar` group and a `Top Status Bar Widget` action; the current build registers the single `Top Status Bar` action only). Fix: uninstall the plugin and restart → install the latest build → delete leftover `TopStatusBar` / `Top Status Bar Widget` entries from the Main Toolbar in `Settings → Appearance & Behavior → Menus and Toolbars` → re-add `Top Status Bar` via *Add Action*.
+- **Diagnosing a missing / stale / non-refreshing top bar**: the plugin logs its critical paths (manager loading, stale-factory detection, panel project binding, cell rendering & adaptive hiding, item state transitions, async Git resolution, settings apply) to the IDE log with the `TSB ` prefix — written only on actual state changes or errors (no spam during window resizing). Open the log via `Help → Show Log in Explorer/Finder`, search `TSB` in `idea.log`, and send the lines around the incident to the maintainer.
 
-## 状态项定制开发
+## Extending with new status items
 
-- 新增插件自有状态项：实现 `model/StatusItem`（或继承 `items/CurrentFileItem` / `model/AbstractStatusItem`），在 `TopStatusBarManager.createItems()` 与 `model/StatusItems.java` 登记即可；`getPlatformWidgetId` 保持返回 null → 显隐由插件设置页控制，在 `TopStatusBarConfigurable.OWN_ITEM_IDS` 加上新 id 即出现在设置页
-- 新增镜像原生微件的状态项：同上登记，但 `getPlatformWidgetId` 返回对应平台工厂 id（如 Position/Encoding/git），显隐跟随原生「状态栏微件」菜单
-- **点击菜单必须复用平台原生实现，不要自拼列表**（2026-09-22 定案，自拼=视觉与行为双重漂移）：行分隔符=平台注册的 `ChangeLineSeparators` 动作组；文件编码=`ChangeFileEncodingAction.createPopup(context, "EncodingPanelActions")`；缩进=contributor 解析链（含编辑器瞬态设置回退，对齐 master 源码）；内存悬停详情=原生 HTML 模板同构表格。菜单数据上下文统一用 `EditorContext.popupContext`（编辑器存在时 `EditorUtil.getEditorDataContext`，原生 `EditorBasedStatusBarPopup.context` 同款）
-- **不要**为插件自有项注册 `statusBarWidgetFactory`：2026.x 会为每个经典工厂生成第二套独立存储的菜单条目（重复菜单+开关失灵的根因，见上文排障）
-- 单元格视觉在 `ui/StatusCell.java`，宽度自适应隐藏策略在 `TopStatusBarPanel.java`，逐项显隐决策在 `TopStatusBarManager.isDisplayEnabled`
+- Adding a plugin-specific item: implement `model/StatusItem` (or extend `items/CurrentFileItem` / `model/AbstractStatusItem`), register it in `TopStatusBarManager.createItems()` and `model/StatusItems.java`; keep `getPlatformWidgetId` returning null → visibility controlled by the plugin settings page; add the id to `TopStatusBarConfigurable.OWN_ITEM_IDS` to make it appear there.
+- Adding a native-widget-mirroring item: same registration, but `getPlatformWidgetId` returns the platform factory id (e.g. Position/Encoding/git); visibility follows the native *Status Bar Widgets* menu.
+- **Click menus must reuse native platform implementations, never hand-rolled lists** (decided 2026-09-22 after visual and behavioral drift): line separator = the platform-registered `ChangeLineSeparators` action group; file encoding = `ChangeFileEncodingAction.createPopup(context, "EncodingPanelActions")`; indent = contributor resolution chain (with editor-transient fallback, aligned with master sources); memory hover details = the native HTML template. Menu data contexts use `EditorContext.popupContext` (`EditorUtil.getEditorDataContext` when an editor exists, same as native `EditorBasedStatusBarPopup.context`).
+- **Do not** register a `statusBarWidgetFactory` for plugin-specific items: 2026.x generates a second, separately-stored menu entry per classic factory (root cause of duplicate menu entries and dead toggles; see troubleshooting above).
+- Cell visuals live in `ui/StatusCell.java`, width-adaptive hiding in `TopStatusBarPanel.java`, per-item visibility decisions in `TopStatusBarManager.isDisplayEnabled`.

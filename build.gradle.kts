@@ -1,3 +1,5 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+
 plugins {
     id("java")
     id("org.jetbrains.intellij.platform") version "2.0.1"
@@ -44,6 +46,27 @@ intellijPlatform {
             sinceBuild = "233"
             untilBuild = "299.*"
         }
+    }
+
+    // 正式版发布（release.yml）执行 verifyPlugin：覆盖最低支持版本 2023.3、
+    // 编译基线 2024.1 与当前推荐版本（recommended() 按 sinceBuild..untilBuild
+    // 区间解析最新推荐 IDE）。Marketplace 上传时官方也会跑 Plugin Verifier，
+    // 这里提前在同一构建里把关。DSL 对照 intellij-platform-gradle-plugin
+    // v2.0.1 源码核实（2026-09-22）
+    pluginVerification {
+        ides {
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2024.1")
+            recommended()
+        }
+    }
+
+    // Marketplace 自动上传（release.yml 的 publishPlugin 步骤）：
+    // token 从 -PmarketplaceToken 注入（CI 里来自 MARKETPLACE_PUBLISH_TOKEN
+    // secret）；未传时仅当 publishPlugin 任务被调用才会报缺 token，
+    // 不影响 buildPlugin/verifyPlugin 等常规构建
+    publishing {
+        token = providers.gradleProperty("marketplaceToken")
     }
 }
 

@@ -1,10 +1,25 @@
 <idea-plugin>
     <id>com.xixka.topstatusbar</id>
     <name>Top Status Bar</name>
-    <vendor>xixka</vendor>
-    <description><![CDATA[A compact, New UI-style status bar rendered as a single custom toolbar component.<br/>
-    Add the "Top Status Bar" action to the Main Toolbar via Settings &#8594; Appearance &amp; Behavior &#8594; Menus and Toolbars
-    to show editor, project, VCS and runtime status next to the search icon.]]></description>
+    <vendor url="https://github.com/xixka">xixka</vendor>
+    <!-- Marketplace 审核要求的完整英文描述（2026-09-22 上架准备）：
+         HTML 子集、无 h1/h2 大标题、不使用 Markdown -->
+    <description><![CDATA[<p>A compact, New UI-style status bar rendered as a native toolbar component for IntelliJ-based IDEs. Place it once on the Main Toolbar via the built-in <b>Menus and Toolbars</b> customization, and editor, project, VCS and runtime status appear right next to the search icon — no extra toolbars, no modified window layout.</p>
+<p>Highlights:</p>
+<ul>
+<li>Native look &amp; feel: icon + text cells, rounded hover, light/dark adaptive, status-colored only when something needs attention, low-priority items auto-hide on narrow windows</li>
+<li>Built exclusively on the public Action System API (CustomComponentAction) — no UI internals patched, no second toolbar row</li>
+<li>Click menus and hover details reuse native platform implementations (line separators, file encoding, indent, memory usage details, power save mode, and more)</li>
+<li>Items mirroring built-in widgets follow the native <b>Status Bar Widgets</b> menu (View | Appearance | Status Bar Widgets); plugin-specific items have their own settings page</li>
+</ul>
+<p>Shown items include: line:column, language service, line separator, file encoding, power save mode, editor selection mode, indent, JSON schema, Git branch, read-only attribute, memory indicator, plus optional aggregator, network location and deploy server cells.</p>
+<p>After installing, add it via <b>Settings | Appearance &amp; Behavior | Menus and Toolbars</b>, select a Main Toolbar group, press <b>+</b> | <b>Add Action…</b> and pick <b>Top Status Bar</b>. Source code and releases: <a href="https://github.com/xixka/intellij-top-status-bar">GitHub</a>.</p>]]></description>
+    <change-notes><![CDATA[<ul>
+<li>First official release published from CI (tag <code>v*</code>), verified with the IntelliJ Plugin Verifier for 2023.3, 2024.1 and the latest recommended releases.</li>
+<li>Memory indicator: clean text style (e.g. "700 MB / 1700 MB") with a warning color above 90% usage; hover shows native-style detailed memory usage.</li>
+<li>Third-party widgets such as CodeBuddy are no longer handled and are hidden by default.</li>
+<li>Click menus and hover tooltips for line separators, file encoding, indentation and power save mode reuse the native platform implementations.</li>
+</ul>]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>

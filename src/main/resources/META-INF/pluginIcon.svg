@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <!-- Top Status Bar plugin icon (light): status cells laid out in a horizontal bar -->
+  <defs>
+    <linearGradient id="tsbBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5B9BFF"/>
+      <stop offset="1" stop-color="#2D6BE0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="36" height="36" rx="9" fill="url(#tsbBg)"/>
+  <circle cx="8.6" cy="20" r="2.3" fill="#7CE38B"/>
+  <rect x="13" y="17.8" width="4.8" height="4.4" rx="2.2" fill="#FFFFFF"/>
+  <rect x="19.8" y="17.8" width="7.2" height="4.4" rx="2.2" fill="#FFFFFF" opacity="0.72"/>
+  <rect x="29" y="17.8" width="4.5" height="4.4" rx="2.2" fill="#FFFFFF" opacity="0.5"/>
+</svg>

@@ -6,6 +6,7 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 
 - 编译打包：`./gradlew buildPlugin -PbuildVersion=0.1.<n> --no-daemon`（与 `.github/workflows/ci.yml` 同款，master 每次 push 由 CI 验证；产物 `build/distributions/*.zip`）
 - 版本号必须显式传入（见硬约束）；仓库无独立 lint/test 任务，CI `buildPlugin` 通过即编译验证
+- 正式发布：`git tag v1.0.0 && git push origin v1.0.0`（触发 `.github/workflows/release.yml`：构建 + Plugin Verifier + GitHub Release，secret 在位时自动传 Marketplace）；也可在 Actions 页手动 Run workflow 输入版本号对当前 HEAD 发布
 
 ## 待确认（未实测）
 
@@ -16,6 +17,7 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - `src/main/resources/META-INF/plugin.xml` — 插件声明：根级 Action、projectService、设置页、通知组；**刻意不注册任何 statusBarWidgetFactory**（原因见硬约束）
 - `src/main/java/com/xixka/topstatusbar/` — Action（CustomComponentAction 入口）、Manager（item 生命周期、镜像项原生菜单开关读取、陈旧工厂残留检测）、Panel（顶栏渲染与自适应隐藏）
 - `src/main/java/com/xixka/topstatusbar/items/` — 17 个状态项；`model/` — StatusItem 架构与 id→显示名注册表；`settings/` — 设置页（总开关 + 自有 6 项逐项开关 + 内容配置）；`ui/StatusCell.java` — 单元格绘制
+- `README.md`（英文主文档，面向 Marketplace/国际用户）/ `README.zh-CN.md`（中文版）——两份内容同步维护：改一项必须同时核对另一份（状态项列表、默认显隐、发布模型等事实性内容）
 
 ## 条件路由
 
@@ -44,7 +46,7 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 
 ## 硬约束
 
-- **每次发布新版本，版本号必须加 1**：dev 构建由 CI 自动注入 `0.1.<run_number>`；正式构建必须 `-PbuildVersion=x.y.z` 且大于上一正式版。版本号重复会导致 IDE 视为"已安装"不升级、旧构建残留，表现为修复无效/幽灵条目（2026-09-17 双条目事故根因）
+- **每次发布新版本，版本号必须加 1**：dev 构建由 CI 自动注入 `0.1.<run_number>`；正式构建必须 `-PbuildVersion=x.y.z` 且大于上一正式版（2026-09-22 起由 `release.yml` 从 tag `v*` 注入，不再人工本地构建）。版本号重复会导致 IDE 视为"已安装"不升级、旧构建残留，表现为修复无效/幽灵条目（2026-09-17 双条目事故根因）
 - **已发布的动作 id、状态项 id 与显示文本永不改动/删除**：`TopStatusBar.Widget`（工具栏自定义按 id 持久化 ActionUrl）、设置页 `topStatusBar`、各状态项 id（statusText/fileSystemSync/codeBuddy/aggregator/networkLocation/deployServer…）。六个同名微件工厂注册经历了三轮反复：2026-09-18 因双插件副本致菜单成双而移除 → 2026-09-20 为让原生菜单接管逐项显示而恢复（id 与旧版一致）→ 同日晚因 2026.x 前端桥接为每个经典工厂生成第二套独立存储的菜单条目（成对且状态互不相通、插件读不到另一套存储）而再次移除，自有 6 项改由插件设置页控制。fileSystemSync 另有第四轮反复：2026-09-21 上午改为镜像平台 VfsRefresh 工厂（试图让原生菜单直接控制），当日实测 2026.1 把该微件勾选写入前端独立存储（经典存储快照不变、插件不可读）而立即回退设置页。ide.general.xml 中遗留的同 id 开关状态按平台规则复用，无害；**今后不要再为插件自有项注册 statusBarWidgetFactory，也不要把自有项镜像到前端化微件**
 - **顶栏显示采用混合真源（2026-09-20，跨版本鲁棒）**：镜像平台原生微件的 11 项跟随原生「状态栏微件」菜单（View → Appearance → Status Bar Widgets，233+ 各版均有该菜单；机制：`TopStatusBarManager.isDisplayEnabled` 经 `StatusBarWidgetFactory.EP_NAME` 解析工厂后读持久化 `StatusBarWidgetSettings.isEnabled(factory)`，**并叠加工厂自带显隐逻辑 `isAvailable(project)`**——与原生 View 菜单展示条目前的判定一致（241/2026.x ToggleWidgetAction.update 源码核实），可用性变化经决策快照轮询捕获——**绝不读底栏微件实例**；工厂缺失回退设置页 itemEnabled）；插件自有 6 项由插件设置页（`TopStatusBarConfigurable`，持久化 itemEnabled）控制，**全版本行为一致**；设置页显示名必须与顶栏观感一致（statusText=当前项目、fileSystemSync=文件同步，2026-09-20 用户按顶栏文案找不到设置条目的教训）。变化检测：平台无变更 topic → `AnActionListener` 监听 `StatusBarWidgets.Toggle.*` 动作即时同步（动作触发但快照未变 = 勾选落入 2026.x 前端独立存储，日志留证据）+ 5s 轮询决策快照兜底（变化才 reload，items 全空也不断轮询）；读取异常 fail-open 按启用处理。启动时 `detectStaleWidgetFactories` 扫描 EP 中六个遗留 id——命中即旧副本残留（重复菜单的另一来源），日志（含 classloader 证据）+ 每会话一次气球通知指引用户清理
 - **自有 6 项历史勾选一次性迁移（2026-09-20 晚）**：注册工厂时代的用户勾选持久化在平台经典存储（ide.general.xml，同 id）；`migrateLegacyOwnItemToggles` 在启动时把「经典存储显式关闭 + 设置页无显式选择」的项迁入 itemEnabled=false（旧工厂未覆盖 isEnabledByDefault=true → 持久化值只可能是显式关闭；设置页选择优先 → 幂等）。不清理平台遗留条目（无工厂应答后无读取方，无害）。无此迁移，用户在旧版取消勾选的项升级后全部重现
@@ -58,8 +60,9 @@ IntelliJ IDEA 插件：把 New UI 风格的紧凑状态栏作为官方 Action Sy
 - 绝不提交凭据/令牌（GitHub PAT 仅用于推送鉴权）；每完成一个改动立即 commit 并 push，提交身份固定为 `xaxka`
 - 目标平台 2024.1（sinceBuild 233）：升级平台前先复查上述已知坑清单中的 API 是否迁移
 
-## 协作约定（仓库所有者已确认）
+## 协作约定（仓库所有者已确认；发布模型 2026-09-22 更新）
 
-- 发布仅走 GitHub Releases：master 每次 CI 通过后自动更新 dev 预构建（tag `dev`，版本号自动递增）；正式版人工上传 `build/distributions/*.zip`；不上架 JetBrains Marketplace
+- 发布模型（旧「正式版人工上传」约定已废）：master 每次 CI 通过后自动更新 dev 预构建（tag `dev`，版本号自动递增）；**正式版走 CI**——推送 tag `v*`（如 `v1.0.0`，版本号见硬约束）触发 `release.yml`：显式版本构建 → Plugin Verifier（2023.3/2024.1/recommended）→ 发布 GitHub Releases 正式版；配置 `MARKETPLACE_PUBLISH_TOKEN` repo secret 时同一构建自动 `publishPlugin` 上传 JetBrains Marketplace（未配置则打日志跳过，不影响发布）
+- Marketplace 上架（2026-09-22 用户定案，取代早前「不上架」）：上架材料已随 v1.0.0 就位——英文主 README + `README.zh-CN.md`、plugin.xml 完整英文描述（HTML 子集、无 h1/h2）与 `<change-notes>`、`META-INF/pluginIcon(_dark).svg`（40×40）、Plugin Verifier CI 关卡。Marketplace 页面侧（License 选择、截图、标签、Vendor 资料）由所有者人工提交；把 publish token 加入 repo secrets 后，之后每个正式版全自动上架
 - 分支模型：单人直推 master，CI 绿灯是唯一合入门槛，不建 PR
 - 出问题一律 fix-forward：追加修复提交推进，不 revert、不改写已推送历史

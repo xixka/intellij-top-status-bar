@@ -28,7 +28,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.MissingResourceException;
 
 /**
  * 语言服务: display name of the language of the currently edited file.
@@ -132,13 +131,16 @@ public final class LanguageItem extends CurrentFileItem {
                 // master 原生为 MoreLanguagesAction 调 navigateToMarketplace，但该方法
                 // 241 编译基线不存在；按 241 原生 ShowPluginsWithSearchOptionAction 同款
                 // enableSearch("/tag:…")（241.14494 源码核实：自动切 Marketplace 标签）。
-                // 文案键 language.services.widget.more.languages 为 master 新增（241 无），
-                // 缺键时整条不显示——与 241 原生本无该条目一致（MissingResourceException
-                // 降级模式同缩进标题先例）
-                String moreLanguagesText = null;
-                try {
-                    moreLanguagesText = LangBundle.message("language.services.widget.more.languages");
-                } catch (MissingResourceException ignored) {
+                // 文案键 language.services.widget.more.languages 为 master 新增（241~262
+                // 各发行分支均无，2026-09-22 逐一核实）。LangBundle.message 缺键不抛
+                // MissingResourceException，而是返回 "!键名!" 占位文本（BundleBase
+                // .useDefaultValue，241 官方源码核实），必须显式比对占位判定缺键：
+                String moreLanguagesKey = "language.services.widget.more.languages";
+                String moreLanguagesText = LangBundle.message(moreLanguagesKey);
+                if (("!" + moreLanguagesKey + "!").equals(moreLanguagesText)) {
+                    // 缺键：整条不显示——与原生该版本本无此条目一致；
+                    // 未来 IDE 引入该键后自动跟随原生文案
+                    moreLanguagesText = null;
                 }
                 if (moreLanguagesText != null) {
                     group.addSeparator();

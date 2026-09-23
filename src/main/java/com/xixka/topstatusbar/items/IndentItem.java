@@ -4,7 +4,6 @@ import com.intellij.application.options.CodeStyle;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.application.ApplicationBundle;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -29,7 +28,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.MissingResourceException;
 
 /**
  * 缩进: tab / space indent effective for the current file.
@@ -101,10 +99,10 @@ public final class IndentItem extends CurrentFileItem {
      * Mirrors the platform CodeStyleStatusBarWidget.createPopup (233/241/
      * master sources): contributor actions first, then "为 &lt;语言&gt; 配置缩进…",
      * then the contributor's disable / show-all actions; the popup title is
-     * the contributor's action group title (e.g. “缩进检测”), falling back to
-     * the language name title when no contributor answers (master behaviour;
-     * 241 and older have no such key and no title either — mirrored by
-     * catching {@link MissingResourceException}).
+     * the contributor's action group title (e.g. “缩进检测”), and no title
+     * when no contributor answers — matching the released 241~2026.x native
+     * builds (the master-only language-name fallback key ships from 2025.3,
+     * see the note below).
      */
     @Override
     public void onClick(@Nullable Project project, @NotNull JComponent source) {
@@ -148,9 +146,7 @@ public final class IndentItem extends CurrentFileItem {
             DebugLog.log("indent onClick: 无可用动作，不弹缩进菜单");
             return;
         }
-        String title = contributor == null
-                ? languageFallbackTitle(psiFile)
-                : contributor.getActionGroupTitle();
+        String title = contributor == null ? null : contributor.getActionGroupTitle();
         ActionGroup group = new ActionGroup() {
             @Override
             public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
@@ -167,21 +163,15 @@ public final class IndentItem extends CurrentFileItem {
     }
 
     /**
-     * 语言名回退标题（master 源码）：{@code ApplicationBundle.message(
-     * "code.style.language.settings.indent.provider", language.displayName)}。
-     * 241 及更早无该键（原生同版 contributor 为空时也不设标题），按
-     * {@link MissingResourceException} 退化为 null——两种平台版本都与
-     * 原生行为一致。
+     * 语言名回退标题已移除（v1.0.2 Plugin Verifier 实测）：master 的
+     * {@code ApplicationBundle.message("code.style.language.settings.indent.provider", …)}
+     * 键只在 2025.3+ 已发布版本出货（241~252 全部缺失，Verifier 对
+     * IC-233~252 逐一报 missing property 兼容性错误；且 ApplicationBundle
+     * 与 LangBundle 同属 DynamicBundle 系，缺键不抛 MissingResourceException
+     * 而返回 "!键名!" 占位，原 catch 降级是死代码）。无 contributor 时
+     * 弹窗无标题——与 241~252 原生行为一致；待最低支持版本 ≥ 2025.3 时
+     * 可恢复该标题（届时键必有）。
      */
-    @Nullable
-    private static String languageFallbackTitle(@NotNull PsiFile psiFile) {
-        try {
-            return ApplicationBundle.message("code.style.language.settings.indent.provider",
-                    psiFile.getLanguage().getDisplayName());
-        } catch (MissingResourceException e) {
-            return null;
-        }
-    }
 
     /**
      * Master getWidgetState 同款 settings 解析：编辑器瞬态设置优先（键同

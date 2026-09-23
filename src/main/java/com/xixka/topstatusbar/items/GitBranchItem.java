@@ -20,8 +20,6 @@ import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
 import git4idea.repo.GitRepositoryManager;
 import git4idea.ui.branch.BranchIconUtil;
-import git4idea.ui.branch.popup.GitBranchesTreePopup;
-import com.intellij.ui.awt.RelativePoint;
 import com.xixka.topstatusbar.DebugLog;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -200,29 +198,23 @@ public final class GitBranchItem extends AbstractStatusItem {
                         DebugLog.warn("gitBranch onClick: 未解析到仓库，不弹分支面板");
                         return;
                     }
-                    // 2024.x–2025.x（编译目标）：直连 git4idea 分支树弹窗 API
-                    try {
-                        GitBranchesTreePopup.create(effective, repository)
-                                .show(new RelativePoint(source, new Point(source.getWidth() / 2, source.getHeight())));
-                        return;
-                    } catch (LinkageError | RuntimeException e) {
-                        // 2026.x：git4idea 拆分为 content 模块后该类已迁移
-                        // （idea.log 2026-09-20 实测 ClassNotFoundException:
-                        // git4idea.ui.branch.popup.GitBranchesTreePopup），
-                        // 编译期无法暴露，只能在运行期降级——改走平台注册动作
-                        DebugLog.warn("gitBranch onClick: 直连分支面板 API 失败（" + e
-                                + "），降级执行平台 Git.Branches 动作", e);
-                    }
                     openBranchesViaPlatformAction(effective, source);
                 })
                 .submit(AppExecutorUtil.getAppExecutorService());
     }
 
     /**
-     * 跨版本兜底：执行平台注册的 {@code Git.Branches} 动作。该 id 在
+     * 唯一路径：执行平台注册的 {@code Git.Branches} 动作。该 id 在
      * 2024.1（git4idea.xml）与 2026.x（intellij.vcs.git.backend.xml）中均由
      * {@code git4idea.ui.branch.GitBranchesAction} 注册，实现内部自行解析
      * 仓库并弹出分支面板——动作系统是官方保证的稳定层，不依赖任何具体类。
+     * <p>
+     * 原 2024.x–2025.x 直连的 {@code GitBranchesTreePopup} 已随 git4idea
+     * 拆分迁移（2025.3+ 移除，v1.0.1 Plugin Verifier 对 IU-253/261/262/263
+     * 逐一报 unresolved class；2026.x 替代类 GitBranchesTreePopupOnBackend
+     * 已标 @Obsolete @ApiStatus.Internal，官方意图即走动作）——直连两端
+     * 版本无法共存，统一走平台动作（原降级路径，2026-09-20 idea.log 实测
+     * 弹窗行为正常）。
      */
     private static void openBranchesViaPlatformAction(@NotNull Project project, @NotNull JComponent source) {
         AnAction branchesAction = ActionManager.getInstance().getAction("Git.Branches");

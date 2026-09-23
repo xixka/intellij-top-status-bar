@@ -59,18 +59,18 @@
 
 | 版本 | 自有 6 项 | 镜像 11 项 |
 |---|---|---|
-| 2023.3（233）— 2026.x+（299.*） | 插件设置页（无平台依赖，全版本一致） | 原生「状态栏微件」菜单（该菜单在 233/241/243/master 均存在，已对照源码核实） |
+| 2024.1（241）— 2026.x+（299.*） | 插件设置页（无平台依赖，全版本一致） | 原生「状态栏微件」菜单（该菜单在 241/243/master 均存在，已对照源码核实） |
 
-插件不注册任何 `statusBarWidgetFactory`，不依赖 2026.x 前端状态栏桥接、不依赖底栏微件实例、不依赖特定版本内部行为。唯一涉及的平台内部 API 是读取菜单开关的 `StatusBarWidgetSettings`（233.14475/241.14494/262 三版 FQN 与签名一致，已核实），且全部读取都有 fail-open 保护：即使未来版本移除该 API，镜像项保持可见、自有项仍可正常控制，插件不会崩溃。
+插件不注册任何 `statusBarWidgetFactory`，不依赖 2026.x 前端状态栏桥接、不依赖底栏微件实例、不依赖特定版本内部行为。唯一涉及的平台内部 API 是读取菜单开关的 `StatusBarWidgetSettings`（241.14494/262 两版 FQN 与签名一致，已核实），且全部读取都有 fail-open 保护：即使未来版本移除该 API，镜像项保持可见、自有项仍可正常控制，插件不会崩溃。
 
 ## 工程与构建
 
 - Gradle 8.8 + IntelliJ Platform Gradle Plugin 2.0.1
-- 目标平台：IntelliJ IDEA Community 2024.1（`sinceBuild=233`，兼容 2023.3+；依赖捆绑的 Git 插件 `Git4Idea`）
+- 目标平台：IntelliJ IDEA Community 2024.1（`sinceBuild=241`，兼容 2024.1+；依赖捆绑的 Git 插件 `Git4Idea`）
 - Java 17，源码编码 UTF-8
 - CI（GitHub Actions）执行 `./gradlew buildPlugin -PbuildVersion=0.1.<run_number>` 完成编译与打包验证，每次构建版本号自动递增
 - master 每次 CI 通过后自动发布 dev 预构建到 [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases)（tag `dev`，文件名带版本号），可直接下载安装
-- **正式版发布（2026-09-22 起走 CI）**：推送 tag `v*`（如 `v1.0.0`）触发 [release.yml](.github/workflows/release.yml)：按 tag 版本号构建 → 跑 Plugin Verifier（2023.3 / 2024.1 / 最新推荐版本）→ 发布 GitHub Releases 正式版；配置了 `MARKETPLACE_PUBLISH_TOKEN` secret 时还会自动上传 JetBrains Marketplace
+- **正式版发布（2026-09-22 起走 CI）**：推送 tag `v*`（如 `v1.0.0`）触发 [release.yml](.github/workflows/release.yml)：按 tag 版本号构建 → 跑 Plugin Verifier（2024.1 / 最新推荐版本）→ 发布 GitHub Releases 正式版；配置了 `MARKETPLACE_PUBLISH_TOKEN` secret 时还会自动上传 JetBrains Marketplace
 - 本地调试沙盒：`./gradlew runIde`（见 AGENTS.md：本地不执行构建，编译验证以 CI 为准）
 
 ## 升级与排障

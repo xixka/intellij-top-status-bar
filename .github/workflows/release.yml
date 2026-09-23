@@ -85,8 +85,8 @@ jobs:
 
             A compact, New UI-style status bar for the IntelliJ main toolbar.
 
-            - Compatibility: IntelliJ IDEA 2023.3+ (since-build 233)
-            - Plugin Verifier passed for 2023.3 / 2024.1 / latest recommended releases (see verifier-reports artifact)
+            - Compatibility: IntelliJ IDEA 2024.1+ (since-build 241)
+            - Plugin Verifier passed for 2024.1 / latest recommended releases (see verifier-reports artifact)
             - Install via `Settings → Plugins → ⚙ → Install Plugin from Disk…`, or from JetBrains Marketplace once listed
 
       - name: Publish to JetBrains Marketplace

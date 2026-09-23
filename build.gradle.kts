@@ -54,13 +54,17 @@ intellijPlatform {
         version = project.version.toString()
 
         ideaVersion {
-            sinceBuild = "233"
+            // 241 起：语言服务微件（com.intellij.platform.lang.lsWidget 包、
+            // LangBundle 的 language.services.widget.* 键）与
+            // IOUtil.directBuffersTotalAllocatedSize 均为 241+ 才有（v1.0.1
+            // Verifier 对 233 报 6-7 项兼容性错误），233 无法真正运行
+            sinceBuild = "241"
             untilBuild = "299.*"
         }
     }
 
-    // 正式版发布（release.yml）执行 verifyPlugin：覆盖最低支持版本 2023.3、
-    // 编译基线 2024.1 与当前推荐版本（recommended() 按 sinceBuild..untilBuild
+    // 正式版发布（release.yml）执行 verifyPlugin：覆盖最低支持版本 2024.1
+    // 与当前推荐版本（recommended() 按 sinceBuild..untilBuild
     // 区间解析最新推荐 IDE；2.19.0 起 IC 目标自动纳入统一 IDEA 2025.3+）。
     // Marketplace 上传时官方也会跑 Plugin Verifier，这里提前在同一构建里把关。
     // DSL 对照 intellij-platform-gradle-plugin v2.19.0 源码核实（2026-09-22）
@@ -73,7 +77,6 @@ intellijPlatform {
         ides {
             // 2.19.0 中 ide() 助手已改名 create()（源码核实：
             // IntelliJPlatformExtension.PluginVerification.Ides 接口）
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
             create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.1")
             recommended()
         }

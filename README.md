@@ -59,18 +59,18 @@ Live updates: caret movement (line:column), file switching (encoding / line sepa
 
 | Version | Plugin-specific items | Mirrored items |
 |---|---|---|
-| 2023.3 (233) — 2026.x+ (299.*) | Plugin settings page (no platform dependency, identical on all versions) | Native *Status Bar Widgets* menu (verified present in 233/241/243/master sources) |
+| 2024.1 (241) — 2026.x+ (299.*) | Plugin settings page (no platform dependency, identical on all versions) | Native *Status Bar Widgets* menu (verified present in 241/243/master sources) |
 
-The plugin registers no `statusBarWidgetFactory`, and depends neither on the 2026.x frontend status bar bridge, nor on bottom-bar widget instances, nor on version-specific internal behavior. The only platform-internal API used is read-only `StatusBarWidgetSettings` for menu switches (FQN and signature verified identical across 233.14475/241.14494/262), and every read is fail-open protected: should a future version remove it, mirrored items stay visible, own items remain controllable, nothing crashes.
+The plugin registers no `statusBarWidgetFactory`, and depends neither on the 2026.x frontend status bar bridge, nor on bottom-bar widget instances, nor on version-specific internal behavior. The only platform-internal API used is read-only `StatusBarWidgetSettings` for menu switches (FQN and signature verified identical across 241.14494/262), and every read is fail-open protected: should a future version remove it, mirrored items stay visible, own items remain controllable, nothing crashes.
 
 ## Project & build
 
 - Gradle 8.8 + IntelliJ Platform Gradle Plugin 2.0.1
-- Target: IntelliJ IDEA Community 2024.1 (`sinceBuild=233`, compatible with 2023.3+; depends on the bundled `Git4Idea` plugin)
+- Target: IntelliJ IDEA Community 2024.1 (`sinceBuild=241`, compatible with 2024.1+; depends on the bundled `Git4Idea` plugin)
 - Java 17, UTF-8 sources
 - CI (GitHub Actions) runs `./gradlew buildPlugin` on every push; each build gets an auto-incremented version (`0.1.<run_number>`)
 - Every green master build publishes a `dev` pre-release to [GitHub Releases](https://github.com/xixka/intellij-top-status-bar/releases) (tag `dev`, versioned zip)
-- **Official releases are published from CI** (since 2026-09-22): pushing a tag `v*` (e.g. `v1.0.0`) builds that commit with the explicit version, runs the IntelliJ **Plugin Verifier** (2023.3 / 2024.1 / latest recommended), and publishes a stable GitHub Release. If the `MARKETPLACE_PUBLISH_TOKEN` repository secret is set, the same build is uploaded to JetBrains Marketplace automatically.
+- **Official releases are published from CI** (since 2026-09-22): pushing a tag `v*` (e.g. `v1.0.0`) builds that commit with the explicit version, runs the IntelliJ **Plugin Verifier** (2024.1 / latest recommended), and publishes a stable GitHub Release. If the `MARKETPLACE_PUBLISH_TOKEN` repository secret is set, the same build is uploaded to JetBrains Marketplace automatically.
 - Local sandbox: `./gradlew runIde`; local release build: `./gradlew buildPlugin -PbuildVersion=x.y.z`
 
 ## Upgrading & troubleshooting
